@@ -21,6 +21,7 @@ func init() {
 	rootCmd.AddCommand(detectSystemCommand)
 	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(uninstallCmd)
 }
 func Execute() error {
 	return rootCmd.Execute()
@@ -106,36 +107,36 @@ var installCmd = &cobra.Command{
 		if len(packageManagers) >= 1 {
 			preferedPac := packageManagers[0]
 			switch preferedPac {
-				case "apt","apt-get", "dnf", "yum":
-						installArg = "install"
-						autoinstall = "-y"
-				case "pacman", "yay":
-						installArg = "-S"
-						autoinstall = "--noconfirm"
-				default:
-					return fmt.Errorf("Unsupported package manager: %s", preferedPac)
+			case "apt", "apt-get", "dnf", "yum":
+				installArg = "install"
+				autoinstall = "-y"
+			case "pacman", "yay":
+				installArg = "-S"
+				autoinstall = "--noconfirm"
+			default:
+				return fmt.Errorf("Unsupported package manager: %s", preferedPac)
 
 			}
 
 			for _, pac := range args {
 				log.Printf("Installing package: %s \n", pac)
-				cmdExec := exec.Command(preferedPac, installArg,autoinstall, pac)
+				cmdExec := exec.Command(preferedPac, installArg, autoinstall, pac)
 				cmdExec.Stdout = os.Stdout
 				cmdExec.Stderr = os.Stderr
 				if err := cmdExec.Run(); err != nil {
 					return err
 				}
 			}
-	}
+		}
 		return nil
 	},
 }
 
 var updateCmd = &cobra.Command{
-	Use: "update",
-	Short: "Updates the system's packages"
-	Long: `Updates the system's packages and allow for the registries to be refreshed`,
-	RunE: func (cmd *cobra.Command, args[]string) error {
+	Use:   "update",
+	Short: "Updates the system's packages",
+	Long:  `Updates the system's packages and allow for the registries to be refreshed`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		packageManagers := DetectPackageManager()
 		if len(packageManagers) == 0 {
 			log.Fatal("No system package manager was detected.")
@@ -144,20 +145,55 @@ var updateCmd = &cobra.Command{
 		if len(packageManagers) >= 1 {
 			preferedPac := packageManagers[0]
 			switch preferedPac {
-				case "apt", "apt-get":
-					updateCmd = "update"
-				case "dnf", "yum":
-					updateCmd = "upgrade"
-				case "pacman", "yay":
-					updateCmd = "-Syu"
-				default:
-					return fmt.Errorf("Unable to find update command due to Unsupported package manager: %s", preferedPac)
+			case "apt", "apt-get":
+				updateCmd = "update"
+			case "dnf", "yum":
+				updateCmd = "upgrade"
+			case "pacman", "yay":
+				updateCmd = "-Syu"
+			default:
+				return fmt.Errorf("Unable to find update command due to Unsupported package manager: %s", preferedPac)
 			}
 			cmdExec := exec.Command(preferedPac, updateCmd)
 			cmdExec.Stdout = os.Stdout
-			cmdExec.Strerr = os.Stderr
+			cmdExec.Stderr = os.Stderr
 			if err := cmdExec.Run(); err != nil {
 				return err
+			}
+		}
+		return nil
+	},
+}
+var uninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall the system's package",
+	Long:  `Uninstall the system's package in a a uninfied uninstall command`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		packageManagers := DetectPackageManager()
+		if len(packageManagers) == 0 {
+			log.Fatal("No system package manager was detected.")
+		}
+		var removeCmd string
+		if len(packageManagers) >= 1 {
+			preferedPac := packageManagers[0]
+			switch preferedPac {
+			case "apt", "apt-get":
+				removeCmd = "remove"
+			case "dnf", "yum":
+				removeCmd = "remove"
+			case "pacman", "yay":
+				removeCmd = "-R"
+			default:
+				return fmt.Errorf("Unable to remove command due to Unsupported package manager: %s", preferedPac)
+			}
+			for _, pac := range args {
+				log.Printf("Installing package: %s \n", pac)
+				cmdExec := exec.Command(preferedPac, removeCmd, pac)
+				cmdExec.Stdout = os.Stdout
+				cmdExec.Stderr = os.Stderr
+				if err := cmdExec.Run(); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
