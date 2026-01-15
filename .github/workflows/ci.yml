@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.22', '1.23']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
+        with:
+          file: ./coverage.out
+          flags: unittests
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build for Linux
+        run: GOOS=linux GOARCH=amd64 go build -o poxy-linux-amd64 ./cmd/poxy
+
+      - name: Build for macOS
+        run: GOOS=darwin GOARCH=amd64 go build -o poxy-darwin-amd64 ./cmd/poxy
+
+      - name: Build for Windows
+        run: GOOS=windows GOARCH=amd64 go build -o poxy-windows-amd64.exe ./cmd/poxy
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poxy-linux-amd64
+          path: poxy-linux-amd64
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poxy-darwin-amd64
+          path: poxy-darwin-amd64
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poxy-windows-amd64
+          path: poxy-windows-amd64.exe
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    strategy:
+      matrix:
+        container:
+          - ubuntu:22.04
+          - fedora:39
+          - archlinux:latest
+          - alpine:3.19
+
+    container:
+      image: ${{ matrix.container }}
+
+    steps:
+      - name: Install prerequisites (Ubuntu)
+        if: contains(matrix.container, 'ubuntu')
+        run: apt-get update && apt-get install -y curl
+
+      - name: Install prerequisites (Fedora)
+        if: contains(matrix.container, 'fedora')
+        run: dnf install -y curl
+
+      - name: Install prerequisites (Arch)
+        if: contains(matrix.container, 'archlinux')
+        run: pacman -Sy --noconfirm curl
+
+      - name: Install prerequisites (Alpine)
+        if: contains(matrix.container, 'alpine')
+        run: apk add --no-cache curl
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: poxy-linux-amd64
+
+      - name: Make executable
+        run: chmod +x poxy-linux-amd64
+
+      - name: Test version
+        run: ./poxy-linux-amd64 version
+
+      - name: Test system detection
+        run: ./poxy-linux-amd64 system
+
+      - name: Test doctor
+        run: ./poxy-linux-amd64 doctor
+
+      - name: Test search (dry-run)
+        run: ./poxy-linux-amd64 search vim -n 2>/dev/null || true

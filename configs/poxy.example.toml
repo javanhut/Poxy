@@ -1,0 +1,55 @@
+# Poxy Configuration File
+# Copy this file to ~/.config/poxy/config.toml (Linux)
+# or ~/Library/Application Support/poxy/config.toml (macOS)
+# or %APPDATA%\poxy\config.toml (Windows)
+
+[general]
+# Source priority - searched in order, first available wins for installs
+# Valid values: "native", "flatpak", "snap", "aur", "brew"
+source_priority = ["native", "flatpak", "snap", "aur"]
+
+# Default behavior
+auto_confirm = false  # Equivalent to -y flag
+dry_run = false       # Equivalent to -n flag
+
+[output]
+# Enable colored output (respects NO_COLOR env var)
+color = true
+
+# Use unicode symbols (✓, ✗, etc.)
+unicode = true
+
+# Show detailed output
+verbose = false
+
+# Package manager specific settings
+[managers.pacman]
+# AUR helper to use: "yay", "paru", or "" to disable AUR
+aur_helper = "yay"
+
+[managers.apt]
+# Use nala instead of apt if available (nicer UI)
+use_nala = false
+
+[managers.flatpak]
+# Default remote for Flatpak installs
+default_remote = "flathub"
+
+[managers.snap]
+# Allow classic confinement by default
+allow_classic = false
+
+# Package aliases - shortcuts for common packages
+# Format: alias = "actual-package-name"
+[aliases]
+# Code editors
+code = "visual-studio-code"
+vim = "neovim"
+
+# Browsers
+ff = "firefox"
+chrome = "google-chrome"
+
+# Development tools
+node = "nodejs"
+py = "python3"
