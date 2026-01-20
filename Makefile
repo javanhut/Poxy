@@ -21,7 +21,7 @@ LDFLAGS=-ldflags "-s -w -X poxy/internal/cli.Version=$(VERSION) -X poxy/internal
 
 # Directories
 BUILD_DIR=build
-CMD_DIR=./cmd/poxy
+CMD_DIR=./cmd
 
 # Platforms for cross-compilation
 PLATFORMS=linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
