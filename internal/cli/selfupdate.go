@@ -352,6 +352,8 @@ func (u *SelfUpdater) replaceBinary(needsSudo bool) error {
 	if installErr != nil {
 		// Restore from backup
 		ui.WarningMsg("Installation failed, restoring backup...")
+		// Remove potentially corrupted/partial binary first
+		os.Remove(u.currentBinary) // Ignore error - file may not exist
 		if restoreErr := copyFile(backupPath, u.currentBinary); restoreErr != nil {
 			ui.ErrorMsg("Failed to restore backup: %v", restoreErr)
 			ui.MutedMsg("  Backup is available at: %s", backupPath)
@@ -367,6 +369,12 @@ func (u *SelfUpdater) replaceBinary(needsSudo bool) error {
 }
 
 func (u *SelfUpdater) installDirect() error {
+	// Remove the current binary first to avoid "text file busy" error
+	// On Linux, a running executable can be deleted but not overwritten
+	if err := os.Remove(u.currentBinary); err != nil {
+		return fmt.Errorf("failed to remove current binary: %w", err)
+	}
+
 	// Copy new binary to destination
 	if err := copyFile(u.newBinary, u.currentBinary); err != nil {
 		return fmt.Errorf("failed to copy new binary: %w", err)
@@ -381,8 +389,17 @@ func (u *SelfUpdater) installDirect() error {
 }
 
 func (u *SelfUpdater) installWithSudo() error {
+	// Remove the current binary first to avoid "text file busy" error
+	cmd := exec.Command("sudo", "rm", "-f", u.currentBinary)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("sudo rm failed: %w", err)
+	}
+
 	// Use sudo cp to copy the binary
-	cmd := exec.Command("sudo", "cp", u.newBinary, u.currentBinary)
+	cmd = exec.Command("sudo", "cp", u.newBinary, u.currentBinary)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
