@@ -23,14 +23,17 @@ type Store struct {
 	db *bbolt.DB
 }
 
-// Open opens or creates the history database.
+// Open opens or creates the history database at the default location.
 func Open() (*Store, error) {
 	if err := config.EnsureDataDir(); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	dbPath := config.HistoryPath()
+	return OpenPath(config.HistoryPath())
+}
 
+// OpenPath opens or creates the history database at the specified path.
+func OpenPath(dbPath string) (*Store, error) {
 	db, err := bbolt.Open(dbPath, 0600, &bbolt.Options{
 		Timeout: 1 * time.Second,
 	})

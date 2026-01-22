@@ -1,7 +1,6 @@
 package history
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,23 +9,18 @@ import (
 func setupTestStore(t *testing.T) (*Store, func()) {
 	t.Helper()
 
-	// Create temp directory
+	// Create temp directory with unique database file
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test_history.db")
 
-	// Override the history path
-	originalXDG := os.Getenv("XDG_DATA_HOME")
-	os.Setenv("XDG_DATA_HOME", tmpDir)
-
-	store, err := Open()
+	// Use OpenPath directly to ensure test isolation
+	store, err := OpenPath(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
 
 	cleanup := func() {
 		store.Close()
-		os.Setenv("XDG_DATA_HOME", originalXDG)
-		os.Remove(dbPath)
 	}
 
 	return store, cleanup
