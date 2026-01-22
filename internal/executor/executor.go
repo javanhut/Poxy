@@ -13,9 +13,8 @@ import (
 
 // Executor handles command execution with optional sudo elevation.
 type Executor struct {
-	dryRun    bool
-	verbose   bool
-	sudoAsked bool // Whether we've already asked for sudo password this session
+	dryRun  bool
+	verbose bool
 }
 
 // New creates a new Executor with the given options.

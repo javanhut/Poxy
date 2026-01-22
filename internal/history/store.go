@@ -2,11 +2,14 @@ package history
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
-	"go.etcd.io/bbolt"
 	"poxy/internal/config"
+
+	"go.etcd.io/bbolt"
+	berrors "go.etcd.io/bbolt/errors"
 )
 
 const (
@@ -20,14 +23,17 @@ type Store struct {
 	db *bbolt.DB
 }
 
-// Open opens or creates the history database.
+// Open opens or creates the history database at the default location.
 func Open() (*Store, error) {
 	if err := config.EnsureDataDir(); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	dbPath := config.HistoryPath()
+	return OpenPath(config.HistoryPath())
+}
 
+// OpenPath opens or creates the history database at the specified path.
+func OpenPath(dbPath string) (*Store, error) {
 	db, err := bbolt.Open(dbPath, 0600, &bbolt.Options{
 		Timeout: 1 * time.Second,
 	})
@@ -83,7 +89,7 @@ func (s *Store) Record(entry *Entry) error {
 		// Update last operation reference
 		metaBucket := tx.Bucket([]byte(bucketMeta))
 		if metaBucket != nil {
-			metaBucket.Put([]byte(keyLastOp), key)
+			_ = metaBucket.Put([]byte(keyLastOp), key) //nolint:errcheck
 		}
 
 		return nil
@@ -210,7 +216,7 @@ func (s *Store) Count() (int, error) {
 // Clear removes all history entries.
 func (s *Store) Clear() error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
-		if err := tx.DeleteBucket([]byte(bucketHistory)); err != nil && err != bbolt.ErrBucketNotFound {
+		if err := tx.DeleteBucket([]byte(bucketHistory)); err != nil && !errors.Is(err, berrors.ErrBucketNotFound) {
 			return err
 		}
 		_, err := tx.CreateBucket([]byte(bucketHistory))

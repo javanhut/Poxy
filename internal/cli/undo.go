@@ -2,11 +2,11 @@ package cli
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
 	"poxy/pkg/snapshot"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -124,48 +124,5 @@ func runUndo(cmd *cobra.Command, args []string) error {
 	}
 
 	ui.SuccessMsg("Undo completed - processed %d package(s)", successful)
-	return nil
-}
-
-// listSnapshotsCmd shows available snapshots
-var listSnapshotsCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List available snapshots",
-	RunE:  runListSnapshots,
-}
-
-func runListSnapshots(cmd *cobra.Command, args []string) error {
-	store, err := snapshot.OpenStore()
-	if err != nil {
-		return fmt.Errorf("failed to open snapshot store: %w", err)
-	}
-	defer store.Close()
-
-	snapshots, err := store.List(20, "")
-	if err != nil {
-		return fmt.Errorf("failed to list snapshots: %w", err)
-	}
-
-	if len(snapshots) == 0 {
-		ui.InfoMsg("No snapshots available")
-		ui.MutedMsg("Snapshots are created automatically before install/uninstall/upgrade operations.")
-		return nil
-	}
-
-	ui.HeaderMsg("Available Snapshots")
-	for _, snap := range snapshots {
-		triggerStr := string(snap.Trigger)
-		if snap.Trigger == snapshot.TriggerManual {
-			triggerStr = "manual"
-		}
-
-		ui.Println("%s  %-10s  %d packages  %s",
-			snap.ID,
-			triggerStr,
-			snap.PackageCount(),
-			snap.Description,
-		)
-	}
-
 	return nil
 }

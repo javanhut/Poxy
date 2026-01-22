@@ -3,8 +3,6 @@ run:
   timeout: 5m
   issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - vendor
 
 output:
   formats:
@@ -27,13 +25,8 @@ linters:
     - bodyclose
     - noctx
     - gosec
-    - exportloopref
+    - copyloopvar
     - whitespace
-
-  disable:
-    - deadcode
-    - structcheck
-    - varcheck
 
 linters-settings:
   errcheck:
@@ -61,6 +54,8 @@ linters-settings:
       - G304 # File path provided as taint input
 
 issues:
+  exclude-dirs:
+    - vendor
   exclude-rules:
     - path: _test\.go
       linters:

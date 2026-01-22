@@ -53,8 +53,8 @@ func capturePreOperationSnapshot(ctx context.Context, trigger snapshot.Trigger, 
 	// Update the snapshot with metadata
 	store, err := snapshot.OpenStore()
 	if err == nil {
-		store.Save(snap)
-		store.Close()
+		_ = store.Save(snap) //nolint:errcheck
+		_ = store.Close()    //nolint:errcheck
 	}
 
 	return snap
@@ -67,14 +67,4 @@ func getAvailableManagers() []manager.Manager {
 	}
 
 	return registry.Available()
-}
-
-// captureCurrentState captures the current system state without saving.
-func captureCurrentState(ctx context.Context) (*snapshot.Snapshot, error) {
-	managers := getAvailableManagers()
-	if len(managers) == 0 {
-		return nil, fmt.Errorf("no package managers available")
-	}
-
-	return snapshot.Capture(ctx, snapshot.TriggerManual, "current state", managers)
 }

@@ -17,11 +17,11 @@ const (
 
 // PacmanError represents a structured error from pacman.
 type PacmanError struct {
-	ErrorType    PacmanErrorType
-	RawOutput    string
-	Packages     []string // Affected packages
-	OriginalErr  error
-	Suggestion   string
+	ErrorType   PacmanErrorType
+	RawOutput   string
+	Packages    []string // Affected packages
+	OriginalErr error
+	Suggestion  string
 }
 
 // Error implements the error interface.

@@ -62,8 +62,8 @@ func TestRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Run a simple command
-	err := exec.Run(ctx, "true")
+	// Run a simple command that exists on all platforms (go is installed for tests)
+	err := exec.Run(ctx, "go", "version")
 	if err != nil {
 		t.Fatalf("Run() error: %v", err)
 	}
@@ -74,8 +74,8 @@ func TestRunFailing(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Run a failing command
-	err := exec.Run(ctx, "false")
+	// Run a failing command (nonexistent go subcommand fails on all platforms)
+	err := exec.Run(ctx, "go", "nonexistent-command-that-should-fail")
 	if err == nil {
 		t.Error("Run() should return error for failing command")
 	}
@@ -86,7 +86,7 @@ func TestRunDryRun(t *testing.T) {
 	ctx := context.Background()
 
 	// In dry-run mode, should return no error even for commands that would fail
-	err := exec.Run(ctx, "false")
+	err := exec.Run(ctx, "go", "nonexistent-command-that-should-fail")
 	if err != nil {
 		t.Errorf("Run() in dry-run mode should not error: %v", err)
 	}
@@ -112,9 +112,9 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	// Should fail due to cancelled context
-	_, err := exec.Output(ctx, "sleep", "10")
+	// Should fail due to canceled context (using cross-platform command)
+	_, err := exec.Output(ctx, "go", "version")
 	if err == nil {
-		t.Error("Output() should error with cancelled context")
+		t.Error("Output() should error with canceled context")
 	}
 }

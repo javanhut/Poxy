@@ -87,7 +87,10 @@ type Builder struct {
 // NewBuilder creates a new AUR builder.
 func NewBuilder(cacheDir string) *Builder {
 	if cacheDir == "" {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			home = "/tmp"
+		}
 		cacheDir = filepath.Join(home, ".cache", "poxy", "aur")
 	}
 

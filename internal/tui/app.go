@@ -39,10 +39,6 @@ type (
 		message string
 		err     error
 	}
-
-	errMsg struct {
-		err error
-	}
 )
 
 // App wraps the Model with bubbletea components
@@ -787,41 +783,6 @@ func (a *App) loadHistory() tea.Cmd {
 
 		entries, err := a.historyStore.List(50)
 		return historyLoadedMsg{entries: entries, err: err}
-	}
-}
-
-func (a *App) searchPackages(query string) tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-
-		// Use TF-IDF search if index is available
-		if a.searchIndex != nil && a.searchIndex.Size() > 0 {
-			// Get native source for boosting
-			nativeSource := ""
-			if native := a.registry.Native(); native != nil {
-				nativeSource = native.Name()
-			}
-
-			opts := database.SearchOptions{
-				Limit:          50,
-				BoostInstalled: true,
-				NativeSource:   nativeSource,
-			}
-
-			indexResults := a.searchIndex.Search(query, opts)
-
-			// Convert to manager.Package
-			results := make([]manager.Package, len(indexResults))
-			for i, r := range indexResults {
-				results[i] = r.Package
-			}
-
-			return searchResultsMsg{results: results, err: nil}
-		}
-
-		// Fallback to native search
-		results, err := a.registry.SearchAll(ctx, query, manager.SearchOpts{Limit: 50})
-		return searchResultsMsg{results: results, err: err}
 	}
 }
 

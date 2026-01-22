@@ -22,7 +22,7 @@ func NewSpinner(message string) *Spinner {
 	s.Suffix = " " + message
 
 	if UseColors {
-		s.Color("cyan")
+		_ = s.Color("cyan") //nolint:errcheck
 	}
 
 	return &Spinner{s: s}

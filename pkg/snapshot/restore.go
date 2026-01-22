@@ -124,10 +124,7 @@ func PlanRestore(ctx context.Context, target *Snapshot, managers []manager.Manag
 		case ChangeDowngraded:
 			// Version changed - for now, we just note this
 			// Full version restore would require downgrade support
-			if !opts.SkipVersionCheck {
-				// We could add these to a separate "version mismatch" list
-				// For now, we ignore version changes
-			}
+			// TODO: Add version mismatch handling when !opts.SkipVersionCheck
 		}
 	}
 

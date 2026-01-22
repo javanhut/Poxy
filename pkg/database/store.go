@@ -3,12 +3,15 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
-	"go.etcd.io/bbolt"
 	"poxy/internal/config"
 	"poxy/pkg/manager"
+
+	"go.etcd.io/bbolt"
+	berrors "go.etcd.io/bbolt/errors"
 )
 
 const (
@@ -18,8 +21,6 @@ const (
 
 	keyLastUpdate = "last_update"
 	keyVersion    = "version"
-
-	currentVersion = "1"
 )
 
 // PackageEntry represents a cached package with metadata.
@@ -260,7 +261,7 @@ func (s *Store) ClearSource(source string) error {
 // Clear removes all cached packages.
 func (s *Store) Clear() error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
-		if err := tx.DeleteBucket([]byte(bucketPackages)); err != nil && err != bbolt.ErrBucketNotFound {
+		if err := tx.DeleteBucket([]byte(bucketPackages)); err != nil && !errors.Is(err, berrors.ErrBucketNotFound) {
 			return err
 		}
 		_, err := tx.CreateBucket([]byte(bucketPackages))

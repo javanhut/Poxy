@@ -154,9 +154,9 @@ func TestParsePacmanError_EmptyInput(t *testing.T) {
 
 func TestIsPacmanDependencyConflict(t *testing.T) {
 	tests := []struct {
-		name     string
-		err      error
-		wantOk   bool
+		name   string
+		err    error
+		wantOk bool
 	}{
 		{
 			name: "dependency conflict",

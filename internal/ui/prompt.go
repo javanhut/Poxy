@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/manifoldco/promptui"
 	"poxy/pkg/manager"
+
+	"github.com/manifoldco/promptui"
 )
 
 // Confirm prompts the user for yes/no confirmation.

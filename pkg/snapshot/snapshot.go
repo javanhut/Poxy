@@ -10,9 +10,10 @@ import (
 	"sort"
 	"time"
 
-	"go.etcd.io/bbolt"
 	"poxy/internal/config"
 	"poxy/pkg/manager"
+
+	"go.etcd.io/bbolt"
 )
 
 const (
@@ -191,7 +192,7 @@ func (s *Store) Save(snap *Snapshot) error {
 		// Update latest reference
 		metaBucket := tx.Bucket([]byte(bucketMeta))
 		if metaBucket != nil {
-			metaBucket.Put([]byte(keyLatest), key)
+			_ = metaBucket.Put([]byte(keyLatest), key) //nolint:errcheck
 		}
 
 		return nil
@@ -468,7 +469,7 @@ func CaptureAndSave(ctx context.Context, trigger Trigger, description string, ma
 	}
 
 	// Auto-prune old snapshots
-	store.Prune(MaxSnapshots, MaxAutoSnapshots)
+	_, _ = store.Prune(MaxSnapshots, MaxAutoSnapshots) //nolint:errcheck
 
 	return snap, nil
 }

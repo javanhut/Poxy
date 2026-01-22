@@ -39,6 +39,12 @@ func TestPackage(t *testing.T) {
 	if pkg.Version != "9.0" {
 		t.Errorf("expected Version '9.0', got '%s'", pkg.Version)
 	}
+	if pkg.Description != "Vi IMproved" {
+		t.Errorf("expected Description 'Vi IMproved', got '%s'", pkg.Description)
+	}
+	if pkg.Source != "apt" {
+		t.Errorf("expected Source 'apt', got '%s'", pkg.Source)
+	}
 	if !pkg.Installed {
 		t.Error("expected Installed to be true")
 	}

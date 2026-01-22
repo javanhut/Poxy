@@ -99,7 +99,7 @@ func (e *SearchEngine) Search(ctx context.Context, query string, opts SearchOpti
 			}
 
 			// Optionally merge with live results for freshness
-			liveResults, _ := e.searchLive(ctx, query, opts)
+			liveResults, _ := e.searchLive(ctx, query, opts) //nolint:errcheck
 			results = e.mergeResults(results, liveResults, opts.Limit)
 
 			return results, nil

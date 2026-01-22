@@ -3,8 +3,9 @@ package cli
 import (
 	"context"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
+
+	"github.com/spf13/cobra"
 )
 
 var infoCmd = &cobra.Command{
@@ -39,7 +40,7 @@ func runInfo(cmd *cobra.Command, args []string) error {
 	ui.PrintPackageInfo(info)
 
 	// Check if installed
-	installed, _ := mgr.IsInstalled(ctx, pkg)
+	installed, _ := mgr.IsInstalled(ctx, pkg) //nolint:errcheck
 	if installed {
 		ui.SuccessMsg("Package is installed")
 	} else {
