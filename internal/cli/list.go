@@ -3,9 +3,10 @@ package cli
 import (
 	"context"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
+
+	"github.com/spf13/cobra"
 )
 
 var (

@@ -133,9 +133,8 @@ func TestLast(t *testing.T) {
 
 	// Empty store
 	entry, err := store.Last()
-	if err != nil {
-		// OK, empty store returns nil
-	}
+	// Note: empty store returns nil entry without error
+	_ = err // Explicitly ignore - no error expected for empty store
 	if entry != nil {
 		t.Error("Last() should return nil for empty store")
 	}
@@ -285,6 +284,6 @@ func TestClose(t *testing.T) {
 	}
 
 	// Close again should not error
-	err = store.Close()
+	_ = store.Close()
 	// May or may not error depending on implementation
 }

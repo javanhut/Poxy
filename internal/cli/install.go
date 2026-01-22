@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/history"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
 	"poxy/pkg/snapshot"
+
+	"github.com/spf13/cobra"
 )
 
 var installCmd = &cobra.Command{
@@ -390,8 +391,8 @@ func doInstallQuiet(ctx context.Context, mgr manager.Manager, packages []string)
 
 	// Record in history (ignore errors)
 	if store, storeErr := history.Open(); storeErr == nil {
-		store.Record(entry)
-		store.Close()
+		_ = store.Record(entry) //nolint:errcheck
+		_ = store.Close()       //nolint:errcheck
 	}
 
 	return err

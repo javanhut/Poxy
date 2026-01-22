@@ -5,6 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // LinuxInfo contains information parsed from /etc/os-release.
@@ -128,7 +131,7 @@ func parseReleaseFiles(info *LinuxInfo) error {
 	for _, rf := range releaseFiles {
 		if _, err := os.Stat(rf.path); err == nil {
 			info.ID = rf.distro
-			info.PrettyName = strings.Title(rf.distro) + " Linux"
+			info.PrettyName = cases.Title(language.English).String(rf.distro) + " Linux"
 			return nil
 		}
 	}

@@ -119,14 +119,10 @@ func (a *APT) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 
 // Search finds packages matching the query.
 func (a *APT) Search(ctx context.Context, query string, opts manager.SearchOpts) ([]manager.Package, error) {
-	args := []string{"search"}
-
 	if opts.InstalledOnly {
 		// Use dpkg for installed packages
 		return a.searchInstalled(ctx, query, opts)
 	}
-
-	args = append(args, query)
 
 	output, err := a.Executor().Output(ctx, "apt-cache", "search", query)
 	if err != nil {

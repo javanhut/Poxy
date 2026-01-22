@@ -1,11 +1,12 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"poxy/internal/history"
 	"poxy/internal/tui"
 	"poxy/internal/ui"
 	"poxy/pkg/database"
+
+	"github.com/spf13/cobra"
 )
 
 var tuiCmd = &cobra.Command{

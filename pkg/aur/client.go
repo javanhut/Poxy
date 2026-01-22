@@ -179,7 +179,7 @@ func (c *Client) doRequest(ctx context.Context, endpoint string) (*Response, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck
 		return nil, fmt.Errorf("AUR API error (status %d): %s", resp.StatusCode, string(body))
 	}
 

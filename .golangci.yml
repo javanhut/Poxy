@@ -25,13 +25,8 @@ linters:
     - bodyclose
     - noctx
     - gosec
-    - exportloopref
+    - copyloopvar
     - whitespace
-
-  disable:
-    - deadcode
-    - structcheck
-    - varcheck
 
 linters-settings:
   errcheck:

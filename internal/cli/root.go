@@ -2,12 +2,13 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"poxy/internal/config"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
 	"poxy/pkg/manager/native"
 	"poxy/pkg/manager/universal"
+
+	"github.com/spf13/cobra"
 )
 
 var (

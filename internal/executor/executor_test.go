@@ -112,9 +112,9 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	// Should fail due to cancelled context
+	// Should fail due to canceled context
 	_, err := exec.Output(ctx, "sleep", "10")
 	if err == nil {
-		t.Error("Output() should error with cancelled context")
+		t.Error("Output() should error with canceled context")
 	}
 }

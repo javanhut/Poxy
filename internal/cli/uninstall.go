@@ -3,11 +3,12 @@ package cli
 import (
 	"context"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/history"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
 	"poxy/pkg/snapshot"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -97,8 +98,8 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 
 	// Record in history (ignore errors)
 	if store, storeErr := history.Open(); storeErr == nil {
-		store.Record(entry)
-		store.Close()
+		_ = store.Record(entry) //nolint:errcheck
+		_ = store.Close()       //nolint:errcheck
 	}
 
 	return err

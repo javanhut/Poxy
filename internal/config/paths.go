@@ -17,7 +17,7 @@ const (
 func ConfigDir() string {
 	switch runtime.GOOS {
 	case "darwin":
-		home, _ := os.UserHomeDir()
+		home, _ := os.UserHomeDir() //nolint:errcheck
 		return filepath.Join(home, "Library", "Application Support", appName)
 	case "windows":
 		return filepath.Join(os.Getenv("APPDATA"), appName)
@@ -26,7 +26,7 @@ func ConfigDir() string {
 		if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 			return filepath.Join(xdg, appName)
 		}
-		home, _ := os.UserHomeDir()
+		home, _ := os.UserHomeDir() //nolint:errcheck
 		return filepath.Join(home, ".config", appName)
 	}
 }
@@ -35,7 +35,7 @@ func ConfigDir() string {
 func DataDir() string {
 	switch runtime.GOOS {
 	case "darwin":
-		home, _ := os.UserHomeDir()
+		home, _ := os.UserHomeDir() //nolint:errcheck
 		return filepath.Join(home, "Library", "Application Support", appName)
 	case "windows":
 		return filepath.Join(os.Getenv("LOCALAPPDATA"), appName)
@@ -44,7 +44,7 @@ func DataDir() string {
 		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
 			return filepath.Join(xdg, appName)
 		}
-		home, _ := os.UserHomeDir()
+		home, _ := os.UserHomeDir() //nolint:errcheck
 		return filepath.Join(home, ".local", "share", appName)
 	}
 }

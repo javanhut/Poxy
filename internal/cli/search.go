@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -228,7 +229,7 @@ func offerInstall(ctx context.Context, results []manager.Package) error {
 	}
 
 	prompt := fmt.Sprintf("Install %s from %s?", pkg.Name, pkg.Source)
-	confirmed, _ := ui.Confirm(prompt, true)
+	confirmed, _ := ui.Confirm(prompt, true) //nolint:errcheck
 	if confirmed {
 		return runInstallPackage(ctx, mgr, pkg.Name)
 	}

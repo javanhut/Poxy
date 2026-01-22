@@ -3,8 +3,9 @@ package cli
 import (
 	"context"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
+
+	"github.com/spf13/cobra"
 )
 
 var autoremoveCmd = &cobra.Command{

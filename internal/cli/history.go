@@ -3,9 +3,10 @@ package cli
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/history"
 	"poxy/internal/ui"
+
+	"github.com/spf13/cobra"
 )
 
 var historyLimit int
@@ -70,7 +71,7 @@ func runHistory(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	total, _ := store.Count()
+	total, _ := store.Count() //nolint:errcheck
 	ui.MutedMsg("\nShowing %d of %d total entries", len(entries), total)
 
 	return nil

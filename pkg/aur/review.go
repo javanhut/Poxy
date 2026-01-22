@@ -166,7 +166,7 @@ func (r *Reviewer) displayFullPKGBUILD(pkgbuild *PKGBUILD) {
 
 	fmt.Println()
 	fmt.Print("Press Enter to continue...")
-	r.reader.ReadString('\n')
+	_, _ = r.reader.ReadString('\n') //nolint:errcheck
 }
 
 // promptAction prompts the user for their decision.
@@ -177,7 +177,7 @@ func (r *Reviewer) promptAction() ReviewResult {
 	promptColor.Print("Action: ")
 	optionColor.Print("[a]ccept and build, [v]iew full PKGBUILD, [r]eject and abort: ")
 
-	input, _ := r.reader.ReadString('\n')
+	input, _ := r.reader.ReadString('\n') //nolint:errcheck
 	input = strings.ToLower(strings.TrimSpace(input))
 
 	switch input {

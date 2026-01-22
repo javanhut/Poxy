@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"poxy/internal/ui"
 	"poxy/pkg/snapshot"
+
+	"github.com/spf13/cobra"
 )
 
 var snapshotCmd = &cobra.Command{
@@ -107,7 +108,7 @@ func runSnapshotList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	count, _ := store.Count()
+	count, _ := store.Count() //nolint:errcheck
 	ui.MutedMsg("")
 	ui.MutedMsg("Showing %d of %d total snapshots", len(snapshots), count)
 
@@ -351,7 +352,7 @@ func runSnapshotPrune(cmd *cobra.Command, args []string) error {
 	}
 	defer store.Close()
 
-	beforeCount, _ := store.Count()
+	beforeCount, _ := store.Count() //nolint:errcheck
 
 	deleted, err := store.Prune(pruneKeep, pruneAutoKeep)
 	if err != nil {
@@ -364,7 +365,7 @@ func runSnapshotPrune(cmd *cobra.Command, args []string) error {
 		ui.SuccessMsg("Pruned %d old snapshot(s)", deleted)
 	}
 
-	afterCount, _ := store.Count()
+	afterCount, _ := store.Count() //nolint:errcheck
 	ui.MutedMsg("Remaining snapshots: %d", afterCount)
 
 	return nil
