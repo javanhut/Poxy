@@ -40,7 +40,15 @@ func (p *Pacman) Install(ctx context.Context, packages []string, opts manager.In
 		defer p.SetDryRun(false)
 	}
 
-	return p.Executor().RunSudo(ctx, p.Binary(), args...)
+	stderr, err := p.Executor().RunSudoWithStderr(ctx, p.Binary(), args...)
+	if err != nil {
+		// Try to parse the error for better handling
+		if pacErr := ParsePacmanError(stderr, err); pacErr != nil {
+			return pacErr
+		}
+		return err
+	}
+	return nil
 }
 
 // Uninstall removes one or more packages.

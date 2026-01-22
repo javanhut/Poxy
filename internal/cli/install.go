@@ -9,6 +9,7 @@ import (
 	"poxy/internal/history"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
+	"poxy/pkg/manager/native"
 	"poxy/pkg/snapshot"
 )
 
@@ -379,6 +380,24 @@ func doInstallQuiet(ctx context.Context, mgr manager.Manager, packages []string)
 	// Execute installation
 	err := mgr.Install(ctx, packages, opts)
 
+	// Check for pacman dependency conflicts and offer to help
+	if err != nil {
+		if handled, handledErr := handlePacmanConflict(ctx, mgr, packages, opts, err); handled {
+			if handledErr == nil {
+				entry.MarkSuccess()
+				ui.SuccessMsg("Successfully installed %v from %s", packages, mgr.DisplayName())
+			} else {
+				entry.MarkFailed(handledErr)
+			}
+			// Record in history (ignore errors)
+			if store, storeErr := history.Open(); storeErr == nil {
+				store.Record(entry)
+				store.Close()
+			}
+			return handledErr
+		}
+	}
+
 	// Update history
 	if err != nil {
 		entry.MarkFailed(err)
@@ -395,4 +414,51 @@ func doInstallQuiet(ctx context.Context, mgr manager.Manager, packages []string)
 	}
 
 	return err
+}
+
+// handlePacmanConflict checks if the error is a pacman dependency conflict and offers
+// to upgrade the system and retry. Returns (handled, error) where handled indicates
+// whether this function handled the error (whether successfully or not).
+func handlePacmanConflict(ctx context.Context, mgr manager.Manager, packages []string, opts manager.InstallOpts, err error) (bool, error) {
+	pacErr, ok := native.IsPacmanDependencyConflict(err)
+	if !ok {
+		return false, nil
+	}
+
+	// Display the conflict message
+	ui.WarningMsg(native.FormatDependencyConflictMessage(pacErr))
+
+	// If not interactive (auto-confirm mode), just return the error
+	if cfg.General.AutoConfirm {
+		return false, nil
+	}
+
+	// Ask user if they want to upgrade and retry
+	confirmed, confirmErr := ui.Confirm("Update system and retry installation?", true)
+	if confirmErr != nil || !confirmed {
+		return true, err // Return original error
+	}
+
+	// Run system upgrade
+	ui.InfoMsg("Updating system...")
+	upgradeOpts := manager.UpgradeOpts{
+		AutoConfirm: true, // We already got confirmation
+	}
+
+	if upgradeErr := mgr.Upgrade(ctx, upgradeOpts); upgradeErr != nil {
+		ui.ErrorMsg("System upgrade failed: %v", upgradeErr)
+		return true, upgradeErr
+	}
+
+	ui.SuccessMsg("System updated successfully")
+
+	// Retry installation
+	ui.InfoMsg("Retrying installation...")
+	retryErr := mgr.Install(ctx, packages, opts)
+	if retryErr != nil {
+		ui.ErrorMsg("Retry failed: %v", retryErr)
+		return true, retryErr
+	}
+
+	return true, nil
 }

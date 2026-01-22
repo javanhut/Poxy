@@ -87,6 +87,44 @@ func (e *Executor) RunSudo(ctx context.Context, name string, args ...string) err
 	return cmd.Run()
 }
 
+// RunSudoWithStderr executes a command with sudo while capturing stderr.
+// It streams both stdout and stderr to the terminal while also capturing stderr
+// for error analysis. Returns the captured stderr and any error.
+func (e *Executor) RunSudoWithStderr(ctx context.Context, name string, args ...string) (string, error) {
+	if e.dryRun {
+		e.printDryRunSudo(name, args)
+		return "", nil
+	}
+
+	var cmd *exec.Cmd
+	if isRoot() {
+		cmd = exec.CommandContext(ctx, name, args...)
+	} else if hasSudo() {
+		sudoArgs := append([]string{name}, args...)
+		cmd = exec.CommandContext(ctx, "sudo", sudoArgs...)
+	} else {
+		return "", fmt.Errorf("this operation requires root privileges, but sudo is not available")
+	}
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+
+	// Capture stderr while still streaming it to terminal
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
+
+	if e.verbose {
+		if isRoot() {
+			fmt.Printf("Executing (as root): %s %s\n", name, strings.Join(args, " "))
+		} else {
+			fmt.Printf("Executing (with sudo): %s %s\n", name, strings.Join(args, " "))
+		}
+	}
+
+	err := cmd.Run()
+	return stderrBuf.String(), err
+}
+
 // Output runs a command and returns its stdout.
 func (e *Executor) Output(ctx context.Context, name string, args ...string) (string, error) {
 	if e.dryRun {
