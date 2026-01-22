@@ -75,7 +75,7 @@ jobs:
           cache: true
 
       - name: Build for Linux
-        run: GOOS=linux GOARCH=amd64 go build -o poxy-linux-amd64 ./cmd/poxy
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o poxy-linux-amd64 ./cmd/poxy
 
       - name: Build for macOS
         run: GOOS=darwin GOARCH=amd64 go build -o poxy-darwin-amd64 ./cmd/poxy
