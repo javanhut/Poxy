@@ -27,8 +27,12 @@ var (
 	indexBuilder *IndexBuilder
 )
 
-// Version is set at build time
-var Version = "0.2.0-dev"
+// Build metadata - set at build time via ldflags
+var (
+	Version   = "0.2.0-dev"
+	Commit    = "unknown"
+	BuildTime = "unknown"
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "poxy",
@@ -81,6 +85,7 @@ func init() {
 	rootCmd.AddCommand(snapshotCmd)
 	rootCmd.AddCommand(systemCmd)
 	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(selfUpdateCmd)
 }
 
 // Execute runs the root command.
@@ -211,5 +216,11 @@ var versionCmd = &cobra.Command{
 	Short: "Print poxy version",
 	Run: func(cmd *cobra.Command, args []string) {
 		ui.InfoMsg("poxy version %s", Version)
+		if Commit != "unknown" {
+			ui.MutedMsg("  Commit: %s", Commit)
+		}
+		if BuildTime != "unknown" {
+			ui.MutedMsg("  Built:  %s", BuildTime)
+		}
 	},
 }

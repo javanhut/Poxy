@@ -372,9 +372,9 @@ func doInstallQuiet(ctx context.Context, mgr manager.Manager, packages []string)
 	// Create history entry
 	entry := history.NewEntry(history.OpInstall, mgr.Name(), packages)
 
-	// Build options
+	// Build options - always set AutoConfirm since poxy already confirmed with user
 	opts := manager.InstallOpts{
-		AutoConfirm: cfg.General.AutoConfirm,
+		AutoConfirm: true,
 		DryRun:      cfg.General.DryRun,
 	}
 
