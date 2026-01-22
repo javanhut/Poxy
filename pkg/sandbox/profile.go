@@ -55,6 +55,7 @@ var ProfileBuild = Profile{
 		"/etc/makepkg.conf",
 		"/etc/pacman.conf",
 		"/etc/pacman.d",
+		"/var/lib/pacman", // Required for pacman dependency checking
 	},
 
 	DevBinds: []string{
@@ -63,6 +64,7 @@ var ProfileBuild = Profile{
 		"/dev/random",
 		"/dev/urandom",
 		"/dev/tty",
+		"/dev/fd", // Required for bash process substitution
 	},
 
 	Tmpfs: []string{
