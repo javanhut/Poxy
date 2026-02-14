@@ -161,7 +161,9 @@ func findBestSource(ctx context.Context, pkg string) (manager.Manager, string) {
 	native := registry.Native()
 	if native != nil {
 		// Try exact match via Info first (faster and more accurate)
-		if info, err := native.Info(ctx, pkg); err == nil && info != nil {
+		// Check Repository is non-empty to avoid matching locally-installed AUR packages
+		// (pacman -Si sets Repository but pacman -Qi fallback does not)
+		if info, err := native.Info(ctx, pkg); err == nil && info != nil && info.Repository != "" {
 			return native, "in official repos"
 		}
 

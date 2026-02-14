@@ -64,7 +64,6 @@ var ProfileBuild = Profile{
 		"/dev/random",
 		"/dev/urandom",
 		"/dev/tty",
-		"/dev/fd", // Required for bash process substitution
 	},
 
 	Tmpfs: []string{
@@ -73,16 +72,20 @@ var ProfileBuild = Profile{
 	},
 
 	Symlinks: map[string]string{
-		"/lib":   "/usr/lib",
-		"/lib64": "/usr/lib",
-		"/bin":   "/usr/bin",
-		"/sbin":  "/usr/bin",
+		"/lib":        "/usr/lib",
+		"/lib64":      "/usr/lib",
+		"/bin":        "/usr/bin",
+		"/sbin":       "/usr/bin",
+		"/dev/fd":     "/proc/self/fd",
+		"/dev/stdin":  "/proc/self/fd/0",
+		"/dev/stdout": "/proc/self/fd/1",
+		"/dev/stderr": "/proc/self/fd/2",
 	},
 
 	UnshareUser:   false, // Use same user to access files
 	UnsharePID:    true,  // Isolate process tree
 	UnshareNet:    true,  // No network during build
-	UnshareIPC:    true,
+	UnshareIPC:    true,  // Isolate IPC
 	UnshareCgroup: false,
 
 	DieWithParent: true,
@@ -103,7 +106,8 @@ var ProfileBuild = Profile{
 	},
 
 	Env: map[string]string{
-		"SOURCE_DATE_EPOCH": "0",
+		"SOURCE_DATE_EPOCH":    "0",
+		"FAKEROOTDONTTRYCHOWN": "1", // Prevent fakeroot from calling real chown(); bwrap always creates a user namespace where unmapped UIDs cause EINVAL
 	},
 }
 
