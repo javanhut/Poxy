@@ -11,6 +11,7 @@ type Profile struct {
 	BindReadWrite []string // Read-write bind mounts
 	DevBinds      []string // Device bind mounts (/dev/null, etc.)
 	Tmpfs         []string // Tmpfs mounts
+	UseDev        bool     // Use --dev /dev (proper devtmpfs with fd symlinks)
 
 	// Symlinks to create inside the sandbox
 	Symlinks map[string]string
@@ -58,13 +59,7 @@ var ProfileBuild = Profile{
 		"/var/lib/pacman", // Required for pacman dependency checking
 	},
 
-	DevBinds: []string{
-		"/dev/null",
-		"/dev/zero",
-		"/dev/random",
-		"/dev/urandom",
-		"/dev/tty",
-	},
+	UseDev: true, // Proper devtmpfs with /dev/fd, /dev/stdin, etc.
 
 	Tmpfs: []string{
 		"/tmp",
@@ -72,14 +67,10 @@ var ProfileBuild = Profile{
 	},
 
 	Symlinks: map[string]string{
-		"/lib":        "/usr/lib",
-		"/lib64":      "/usr/lib",
-		"/bin":        "/usr/bin",
-		"/sbin":       "/usr/bin",
-		"/dev/fd":     "/proc/self/fd",
-		"/dev/stdin":  "/proc/self/fd/0",
-		"/dev/stdout": "/proc/self/fd/1",
-		"/dev/stderr": "/proc/self/fd/2",
+		"/lib":   "/usr/lib",
+		"/lib64": "/usr/lib",
+		"/bin":   "/usr/bin",
+		"/sbin":  "/usr/bin",
 	},
 
 	UnshareUser:   false, // Use same user to access files
@@ -126,12 +117,7 @@ var ProfileFetch = Profile{
 		"/etc/ca-certificates",
 	},
 
-	DevBinds: []string{
-		"/dev/null",
-		"/dev/zero",
-		"/dev/random",
-		"/dev/urandom",
-	},
+	UseDev: true, // Proper devtmpfs with /dev/fd, /dev/stdin, etc.
 
 	Tmpfs: []string{
 		"/tmp",

@@ -14,8 +14,13 @@ var (
 	// ErrBubblewrapNotFound is returned when bwrap is not installed
 	ErrBubblewrapNotFound = errors.New("bubblewrap (bwrap) is not installed")
 
-	// ErrSandboxFailed is returned when sandbox execution fails
+	// ErrSandboxFailed is returned when the sandbox itself fails (setup, permissions, etc.)
 	ErrSandboxFailed = errors.New("sandbox execution failed")
+
+	// ErrCommandFailed is returned when the sandboxed command ran but exited with a non-zero code.
+	// This means the sandbox worked fine but the command itself failed, so retrying
+	// without sandbox would not help.
+	ErrCommandFailed = errors.New("sandboxed command failed")
 )
 
 // Sandbox provides sandboxed execution using bubblewrap.
@@ -138,10 +143,20 @@ func (s *Sandbox) buildArgs(cmd string, args []string) []string {
 		bwrapArgs = append(bwrapArgs, "--chdir", s.workdir)
 	}
 
-	// Device binds
-	for _, dev := range s.profile.DevBinds {
-		if pathExists(dev) {
-			bwrapArgs = append(bwrapArgs, "--dev-bind", dev, dev)
+	// Create /proc (must come before symlinks that reference /proc/self/fd)
+	bwrapArgs = append(bwrapArgs, "--proc", "/proc")
+
+	// Device setup
+	if s.profile.UseDev {
+		// --dev /dev creates a proper devtmpfs with standard devices
+		// (null, zero, random, urandom, tty) AND fd symlinks
+		// (/dev/fd -> /proc/self/fd, /dev/stdin, /dev/stdout, /dev/stderr)
+		bwrapArgs = append(bwrapArgs, "--dev", "/dev")
+	} else {
+		for _, dev := range s.profile.DevBinds {
+			if pathExists(dev) {
+				bwrapArgs = append(bwrapArgs, "--dev-bind", dev, dev)
+			}
 		}
 	}
 
@@ -154,9 +169,6 @@ func (s *Sandbox) buildArgs(cmd string, args []string) []string {
 	for dest, src := range s.profile.Symlinks {
 		bwrapArgs = append(bwrapArgs, "--symlink", src, dest)
 	}
-
-	// Create /proc
-	bwrapArgs = append(bwrapArgs, "--proc", "/proc")
 
 	// Environment
 	if s.profile.ClearEnv {
@@ -208,8 +220,10 @@ func (s *Sandbox) Run(ctx context.Context, cmd string, args ...string) error {
 	if err := execCmd.Run(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return fmt.Errorf("%w: %s exited with code %d", ErrSandboxFailed, cmd, exitErr.ExitCode())
+			// The sandbox worked but the command itself failed
+			return fmt.Errorf("%w: %s exited with code %d", ErrCommandFailed, cmd, exitErr.ExitCode())
 		}
+		// The sandbox itself failed to run (setup, permissions, etc.)
 		return fmt.Errorf("%w: %v", ErrSandboxFailed, err)
 	}
 
@@ -229,9 +243,11 @@ func (s *Sandbox) RunOutput(ctx context.Context, cmd string, args ...string) (st
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
+			// The sandbox worked but the command itself failed
 			return string(output), fmt.Errorf("%w: %s exited with code %d: %s",
-				ErrSandboxFailed, cmd, exitErr.ExitCode(), string(output))
+				ErrCommandFailed, cmd, exitErr.ExitCode(), string(output))
 		}
+		// The sandbox itself failed to run
 		return string(output), fmt.Errorf("%w: %v", ErrSandboxFailed, err)
 	}
 

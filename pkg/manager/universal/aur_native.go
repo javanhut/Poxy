@@ -21,10 +21,11 @@ type NativeAUR struct {
 	builder        *aur.Builder
 	exec           *executor.Executor
 	reviewPKGBUILD bool
+	useSandbox     bool
 }
 
 // NewNativeAUR creates a new native AUR manager.
-func NewNativeAUR(reviewPKGBUILD bool) *NativeAUR {
+func NewNativeAUR(reviewPKGBUILD, useSandbox bool) *NativeAUR {
 	return &NativeAUR{
 		name:           "aur",
 		displayName:    "AUR (Native)",
@@ -32,6 +33,7 @@ func NewNativeAUR(reviewPKGBUILD bool) *NativeAUR {
 		builder:        aur.NewBuilder(""),
 		exec:           executor.New(false, false),
 		reviewPKGBUILD: reviewPKGBUILD,
+		useSandbox:     useSandbox,
 	}
 }
 
@@ -70,14 +72,7 @@ func (a *NativeAUR) NeedsSudo() bool {
 
 // Install builds and installs one or more AUR packages.
 func (a *NativeAUR) Install(ctx context.Context, packages []string, opts manager.InstallOpts) error {
-	buildOpts := aur.DefaultBuildOptions()
-	buildOpts.NoConfirm = opts.AutoConfirm
-	buildOpts.ReviewPKGBUILD = a.reviewPKGBUILD && !opts.AutoConfirm
-
-	if a.reviewPKGBUILD && !opts.AutoConfirm {
-		buildOpts.OnReview = aur.CreateReviewCallback(true)
-	}
-
+	buildOpts := a.buildOptions(opts)
 	a.builder.SetOptions(buildOpts)
 
 	if opts.DryRun {
@@ -92,6 +87,19 @@ func (a *NativeAUR) Install(ctx context.Context, packages []string, opts manager
 	}
 
 	return nil
+}
+
+func (a *NativeAUR) buildOptions(opts manager.InstallOpts) aur.BuildOptions {
+	buildOpts := aur.DefaultBuildOptions()
+	buildOpts.NoConfirm = opts.AutoConfirm
+	buildOpts.UseSandbox = a.useSandbox
+	buildOpts.ReviewPKGBUILD = a.reviewPKGBUILD && !opts.AutoConfirm
+
+	if a.reviewPKGBUILD && !opts.AutoConfirm {
+		buildOpts.OnReview = aur.CreateReviewCallback(true)
+	}
+
+	return buildOpts
 }
 
 // Uninstall removes one or more packages using pacman.
