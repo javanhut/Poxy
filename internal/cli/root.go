@@ -178,7 +178,7 @@ func registerManagers() {
 	aurConfig := cfg.GetManagerConfig("aur")
 	if aurConfig.UseNative {
 		// Use poxy's native AUR builder
-		nativeAUR := universal.NewNativeAUR(aurConfig.ReviewPKGBUILD)
+		nativeAUR := universal.NewNativeAUR(aurConfig.ReviewPKGBUILD, aurConfig.UseSandbox)
 		if nativeAUR.IsAvailable() {
 			registry.Register(nativeAUR)
 		}

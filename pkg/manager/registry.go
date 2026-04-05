@@ -181,7 +181,7 @@ func (r *Registry) GetManagerForSource(source string) (Manager, error) {
 		return mgr, nil
 	}
 
-	// Check if it's a type
+	// Check if it's a type or alias
 	switch source {
 	case "native":
 		if r.native == nil {
@@ -194,7 +194,7 @@ func (r *Registry) GetManagerForSource(source string) (Manager, error) {
 			return nil, fmt.Errorf("no universal package managers available")
 		}
 		return managers[0], nil
-	case "aur":
+	case "aur", "yay", "paru", "trizen", "aurman":
 		managers := r.AvailableByType(TypeAUR)
 		if len(managers) == 0 {
 			return nil, fmt.Errorf("no AUR helpers available")

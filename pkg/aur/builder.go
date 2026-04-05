@@ -302,11 +302,18 @@ func (b *Builder) runMakepkg(ctx context.Context, pkgDir string) ([]string, erro
 			sb.Profile().AllowNetwork() // Need network for sources
 
 			if err := sb.Run(ctx, "makepkg", args...); err != nil {
-				return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
+				// Only retry without sandbox if the sandbox itself failed.
+				// If the command ran inside the sandbox and failed, retrying
+				// without sandbox won't help (e.g. GLIBC mismatch, build errors).
+				if errors.Is(err, sandbox.ErrCommandFailed) {
+					return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
+				}
+				b.progress("build", "Sandbox setup failed, retrying without sandbox...")
+				cmd = exec.CommandContext(ctx, "makepkg", args...)
+				cmd.Dir = pkgDir
+			} else {
+				return b.findBuiltPackages(pkgDir)
 			}
-
-			// Find built packages
-			return b.findBuiltPackages(pkgDir)
 		}
 	} else {
 		cmd = exec.CommandContext(ctx, "makepkg", args...)

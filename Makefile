@@ -22,6 +22,8 @@ LDFLAGS=-ldflags "-s -w -X poxy/internal/cli.Version=$(VERSION) -X poxy/internal
 # Directories
 BUILD_DIR=build
 CMD_DIR=./cmd
+PREFIX=/usr/local
+BINDIR=$(PREFIX)/bin
 
 # Platforms for cross-compilation
 PLATFORMS=linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
@@ -102,39 +104,30 @@ vet:
 	@echo "Running go vet..."
 	$(GOVET) ./...
 
-## install: Install to ~/.local/bin or GOPATH/bin
+## install: Install to /usr/local/bin
 install: build
-	@echo "Installing $(BINARY_NAME)..."
-	@if [ -n "$(GOPATH)" ]; then \
-		mkdir -p $(GOPATH)/bin; \
-		cp $(BUILD_DIR)/$(BINARY_NAME) $(GOPATH)/bin/$(BINARY_NAME); \
-		echo "Installed to $(GOPATH)/bin/$(BINARY_NAME)"; \
-	else \
-		mkdir -p ~/.local/bin; \
-		cp $(BUILD_DIR)/$(BINARY_NAME) ~/.local/bin/$(BINARY_NAME); \
-		echo "Installed to ~/.local/bin/$(BINARY_NAME)"; \
-		echo "Make sure ~/.local/bin is in your PATH"; \
-	fi
+	@echo "Installing $(BINARY_NAME) to $(BINDIR)..."
+	@install -d $(BINDIR)
+	@install -m 755 $(BUILD_DIR)/$(BINARY_NAME) $(BINDIR)/$(BINARY_NAME)
+	@echo "Installed to $(BINDIR)/$(BINARY_NAME)"
 
 ## install-system: Install to /usr/local/bin (requires sudo)
 install-system: build
-	@echo "Installing $(BINARY_NAME) to /usr/local/bin..."
-	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
-	@sudo chmod +x /usr/local/bin/$(BINARY_NAME)
-	@echo "Installed to /usr/local/bin/$(BINARY_NAME)"
+	@echo "Installing $(BINARY_NAME) to $(BINDIR)..."
+	@sudo install -d $(BINDIR)
+	@sudo install -m 755 $(BUILD_DIR)/$(BINARY_NAME) $(BINDIR)/$(BINARY_NAME)
+	@echo "Installed to $(BINDIR)/$(BINARY_NAME)"
 
-## uninstall: Remove from ~/.local/bin or GOPATH/bin
+## uninstall: Remove from /usr/local/bin
 uninstall:
-	@echo "Uninstalling $(BINARY_NAME)..."
-	@rm -f ~/.local/bin/$(BINARY_NAME) 2>/dev/null || true
-	@if [ -n "$(GOPATH)" ]; then rm -f $(GOPATH)/bin/$(BINARY_NAME) 2>/dev/null || true; fi
-	@rm -f /usr/local/bin/$(BINARY_NAME) 2>/dev/null || true
+	@echo "Uninstalling $(BINARY_NAME) from $(BINDIR)..."
+	@rm -f $(BINDIR)/$(BINARY_NAME) 2>/dev/null || true
 	@echo "Uninstalled"
 
 ## uninstall-system: Remove from /usr/local/bin (requires sudo)
 uninstall-system:
-	@echo "Uninstalling $(BINARY_NAME) from /usr/local/bin..."
-	@sudo rm -f /usr/local/bin/$(BINARY_NAME)
+	@echo "Uninstalling $(BINARY_NAME) from $(BINDIR)..."
+	@sudo rm -f $(BINDIR)/$(BINARY_NAME)
 	@echo "Uninstalled"
 
 ## run: Build and run (use ARGS="command" to pass arguments)

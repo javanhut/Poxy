@@ -39,6 +39,14 @@ default_remote = "flathub"
 # Allow classic confinement by default
 allow_classic = false
 
+[managers.aur]
+# Use poxy native AUR builder (true) or external helper from [managers.pacman].aur_helper (false)
+use_native = true
+# Show PKGBUILD review before building (interactive mode only)
+review_pkgbuild = true
+# Build AUR packages in bubblewrap sandbox
+use_sandbox = true
+
 # Package aliases - shortcuts for common packages
 # Format: alias = "actual-package-name"
 [aliases]

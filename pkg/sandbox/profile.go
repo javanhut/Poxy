@@ -11,6 +11,7 @@ type Profile struct {
 	BindReadWrite []string // Read-write bind mounts
 	DevBinds      []string // Device bind mounts (/dev/null, etc.)
 	Tmpfs         []string // Tmpfs mounts
+	UseDev        bool     // Use --dev /dev (proper devtmpfs with fd symlinks)
 
 	// Symlinks to create inside the sandbox
 	Symlinks map[string]string
@@ -58,14 +59,7 @@ var ProfileBuild = Profile{
 		"/var/lib/pacman", // Required for pacman dependency checking
 	},
 
-	DevBinds: []string{
-		"/dev/null",
-		"/dev/zero",
-		"/dev/random",
-		"/dev/urandom",
-		"/dev/tty",
-		"/dev/fd", // Required for bash process substitution
-	},
+	UseDev: true, // Proper devtmpfs with /dev/fd, /dev/stdin, etc.
 
 	Tmpfs: []string{
 		"/tmp",
@@ -82,7 +76,7 @@ var ProfileBuild = Profile{
 	UnshareUser:   false, // Use same user to access files
 	UnsharePID:    true,  // Isolate process tree
 	UnshareNet:    true,  // No network during build
-	UnshareIPC:    true,
+	UnshareIPC:    true,  // Isolate IPC
 	UnshareCgroup: false,
 
 	DieWithParent: true,
@@ -103,7 +97,8 @@ var ProfileBuild = Profile{
 	},
 
 	Env: map[string]string{
-		"SOURCE_DATE_EPOCH": "0",
+		"SOURCE_DATE_EPOCH":    "0",
+		"FAKEROOTDONTTRYCHOWN": "1", // Prevent fakeroot from calling real chown(); bwrap always creates a user namespace where unmapped UIDs cause EINVAL
 	},
 }
 
@@ -122,12 +117,7 @@ var ProfileFetch = Profile{
 		"/etc/ca-certificates",
 	},
 
-	DevBinds: []string{
-		"/dev/null",
-		"/dev/zero",
-		"/dev/random",
-		"/dev/urandom",
-	},
+	UseDev: true, // Proper devtmpfs with /dev/fd, /dev/stdin, etc.
 
 	Tmpfs: []string{
 		"/tmp",
