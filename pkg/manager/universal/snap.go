@@ -73,7 +73,7 @@ func (s *Snap) Install(ctx context.Context, packages []string, opts manager.Inst
 
 		out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
 		if opts.OutputSink != nil && out != "" {
-			_, _ = opts.OutputSink.Write([]byte(out))
+			_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 		}
 		if err != nil {
 			return err
@@ -99,7 +99,7 @@ func (s *Snap) Uninstall(ctx context.Context, packages []string, opts manager.Un
 
 	out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
 	if opts.OutputSink != nil && out != "" {
-		_, _ = opts.OutputSink.Write([]byte(out))
+		_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 	}
 	return err
 }
@@ -124,7 +124,7 @@ func (s *Snap) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 
 	out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
 	if opts.OutputSink != nil && out != "" {
-		_, _ = opts.OutputSink.Write([]byte(out))
+		_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 	}
 	return err
 }

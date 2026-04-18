@@ -24,12 +24,12 @@ var (
 )
 
 type selectorModel struct {
-	title     string
-	items     []SelectorItem
-	cursor    int
-	chosen    int
-	cancelled bool
-	quitting  bool
+	title    string
+	items    []SelectorItem
+	cursor   int
+	chosen   int
+	canceled bool
+	quitting bool
 }
 
 func (m selectorModel) Init() tea.Cmd { return nil }
@@ -38,7 +38,7 @@ func (m selectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if km, ok := msg.(tea.KeyMsg); ok {
 		switch km.String() {
 		case "esc", "q", "ctrl+c":
-			m.cancelled = true
+			m.canceled = true
 			m.quitting = true
 			return m, tea.Quit
 		case "enter":
@@ -95,7 +95,7 @@ func (m selectorModel) View() string {
 }
 
 // RunSelector shows an interactive list of items and returns the selected index.
-// Returns -1 if the user cancelled with esc/q/ctrl+c.
+// Returns -1 if the user canceled with esc/q/ctrl+c.
 func RunSelector(title string, items []SelectorItem) (int, error) {
 	if len(items) == 0 {
 		return -1, fmt.Errorf("no items to select from")
@@ -111,7 +111,7 @@ func RunSelector(title string, items []SelectorItem) (int, error) {
 	if !ok {
 		return -1, fmt.Errorf("unexpected selector state")
 	}
-	if fm.cancelled {
+	if fm.canceled {
 		return -1, nil
 	}
 	return fm.chosen, nil

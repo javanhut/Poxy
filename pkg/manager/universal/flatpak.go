@@ -84,7 +84,7 @@ func (f *Flatpak) Install(ctx context.Context, packages []string, opts manager.I
 
 		out, err := f.exec.RunCaptured(ctx, f.binary, args...)
 		if opts.OutputSink != nil && out != "" {
-			_, _ = opts.OutputSink.Write([]byte(out))
+			_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 		}
 		if err != nil {
 			return err
@@ -111,7 +111,7 @@ func (f *Flatpak) Uninstall(ctx context.Context, packages []string, opts manager
 
 	out, err := f.exec.RunCaptured(ctx, f.binary, args...)
 	if opts.OutputSink != nil && out != "" {
-		_, _ = opts.OutputSink.Write([]byte(out))
+		_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 	}
 	if err != nil {
 		return err
@@ -148,7 +148,7 @@ func (f *Flatpak) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 
 	out, err := f.exec.RunCaptured(ctx, f.binary, args...)
 	if opts.OutputSink != nil && out != "" {
-		_, _ = opts.OutputSink.Write([]byte(out))
+		_, _ = opts.OutputSink.Write([]byte(out)) //nolint:errcheck
 	}
 	return err
 }

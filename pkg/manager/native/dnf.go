@@ -326,7 +326,7 @@ func (d *DNF) ListInstalled(ctx context.Context, opts manager.ListOpts) ([]manag
 // Uses `dnf check-update`, which exits 100 when updates exist, 0 when none,
 // and other codes on error. Both 100 and 0 are treated as success.
 func (d *DNF) ListUpgradable(ctx context.Context) ([]manager.Package, error) {
-	output, _ := d.Executor().OutputQuiet(ctx, d.Binary(), "check-update", "-q")
+	output, _ := d.Executor().OutputQuiet(ctx, d.Binary(), "check-update", "-q") //nolint:errcheck
 	// Ignore exit code — 100 (updates) and 0 (no updates) both come with
 	// useful stdout. On other errors the scanner will just find nothing.
 

@@ -103,7 +103,7 @@ func (b *BaseManager) RunOpCaptured(ctx context.Context, sink io.Writer, args ..
 		out, err = b.exec.RunCaptured(ctx, b.binary, args...)
 	}
 	if sink != nil && out != "" {
-		_, _ = sink.Write([]byte(out))
+		_, _ = sink.Write([]byte(out)) //nolint:errcheck
 	}
 	return out, err
 }
@@ -122,7 +122,7 @@ func (b *BaseManager) RunOpCapturedAs(ctx context.Context, sink io.Writer, binar
 		out, err = b.exec.RunCaptured(ctx, binary, args...)
 	}
 	if sink != nil && out != "" {
-		_, _ = sink.Write([]byte(out))
+		_, _ = sink.Write([]byte(out)) //nolint:errcheck
 	}
 	return out, err
 }
