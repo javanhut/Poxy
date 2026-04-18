@@ -30,8 +30,15 @@ func DetectDarwin() (*DarwinInfo, error) {
 	return info, nil
 }
 
-// GetDarwinManager returns the recommended package manager for macOS.
-// Currently only Homebrew is supported.
+// GetDarwinManager returns the recommended package manager for macOS,
+// preferring whichever is actually installed. Homebrew takes precedence
+// over MacPorts when both are available.
 func GetDarwinManager() string {
+	if _, err := exec.LookPath("brew"); err == nil {
+		return "brew"
+	}
+	if _, err := exec.LookPath("port"); err == nil {
+		return "macports"
+	}
 	return "brew"
 }

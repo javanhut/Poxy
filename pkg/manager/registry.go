@@ -51,6 +51,10 @@ func (r *Registry) Detect() error {
 		nativeName = detector.GetDarwinManager()
 	case detector.OSWindows:
 		nativeName = detector.GetWindowsManager()
+	case detector.OSFreeBSD:
+		nativeName = detector.GetFreeBSDManager()
+	case detector.OSOpenBSD:
+		nativeName = detector.GetOpenBSDManager()
 	}
 
 	if nativeName != "" {

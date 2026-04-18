@@ -12,6 +12,8 @@ const (
 	OSLinux   OSType = "linux"
 	OSDarwin  OSType = "darwin"
 	OSWindows OSType = "windows"
+	OSFreeBSD OSType = "freebsd"
+	OSOpenBSD OSType = "openbsd"
 	OSUnknown OSType = "unknown"
 )
 
@@ -50,6 +52,14 @@ func Detect() (*SystemInfo, error) {
 		info.OS = OSWindows
 		info.Distribution = "windows"
 		info.PrettyName = "Windows"
+	case "freebsd":
+		info.OS = OSFreeBSD
+		info.Distribution = "freebsd"
+		info.PrettyName = "FreeBSD"
+	case "openbsd":
+		info.OS = OSOpenBSD
+		info.Distribution = "openbsd"
+		info.PrettyName = "OpenBSD"
 	default:
 		info.OS = OSUnknown
 	}
@@ -88,4 +98,14 @@ func (s *SystemInfo) IsDarwin() bool {
 // IsWindows returns true if the system is running Windows.
 func (s *SystemInfo) IsWindows() bool {
 	return s.OS == OSWindows
+}
+
+// IsFreeBSD returns true if the system is running FreeBSD.
+func (s *SystemInfo) IsFreeBSD() bool {
+	return s.OS == OSFreeBSD
+}
+
+// IsOpenBSD returns true if the system is running OpenBSD.
+func (s *SystemInfo) IsOpenBSD() bool {
+	return s.OS == OSOpenBSD
 }

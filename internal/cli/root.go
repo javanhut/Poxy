@@ -163,9 +163,15 @@ func registerManagers() {
 	registry.Register(native.NewNix())
 	registry.Register(native.NewSlackpkg())
 	registry.Register(native.NewSwupd())
+	registry.Register(native.NewGuix())
 
-	// Homebrew (macOS + Linux)
-	registry.Register(native.NewBrew())
+	// macOS managers
+	registry.Register(native.NewBrew()) // also works on Linux
+	registry.Register(native.NewMacPorts())
+
+	// BSD managers
+	registry.Register(native.NewPkgBSD())
+	registry.Register(native.NewPkgAdd())
 
 	// Windows managers
 	registry.Register(native.NewWinget())

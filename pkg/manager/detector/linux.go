@@ -185,6 +185,8 @@ var distroManagerMap = map[string]string{
 	"nixos":          "nix",
 	"slackware":      "slackpkg",
 	"clear-linux-os": "swupd",
+	"guix":           "guix",
+	"guixsd":         "guix",
 }
 
 // GetNativeManager returns the native package manager for a distribution ID.
