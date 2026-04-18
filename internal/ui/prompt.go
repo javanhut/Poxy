@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"poxy/pkg/manager"
@@ -9,39 +11,29 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-// Confirm prompts the user for yes/no confirmation.
+// Confirm prompts the user for yes/no confirmation. It reads a single line
+// from stdin and interprets empty input as the default. Unlike a promptui-
+// based implementation, this leaves terminal state untouched so subsequent
+// commands (e.g. sudo password prompts) work cleanly.
 func Confirm(prompt string, defaultYes bool) (bool, error) {
-	label := prompt
+	suffix := " [y/N]: "
 	if defaultYes {
-		label += " [Y/n]"
-	} else {
-		label += " [y/N]"
+		suffix = " [Y/n]: "
 	}
+	fmt.Print(prompt + suffix)
 
-	p := promptui.Prompt{
-		Label:     label,
-		IsConfirm: true,
-		Default:   "",
-	}
-
-	if defaultYes {
-		p.Default = "y"
-	}
-
-	result, err := p.Run()
+	reader := bufio.NewReader(os.Stdin)
+	line, err := reader.ReadString('\n')
 	if err != nil {
-		if err == promptui.ErrAbort {
-			return false, nil
-		}
-		return defaultYes, nil // Return default on error
-	}
-
-	result = strings.ToLower(strings.TrimSpace(result))
-	if result == "" {
+		// EOF or read error — fall back to the default rather than blocking.
 		return defaultYes, nil
 	}
 
-	return result == "y" || result == "yes", nil
+	answer := strings.ToLower(strings.TrimSpace(line))
+	if answer == "" {
+		return defaultYes, nil
+	}
+	return answer == "y" || answer == "yes", nil
 }
 
 // SelectPackage prompts the user to select a package from a list.

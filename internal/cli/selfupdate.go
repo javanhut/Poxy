@@ -335,9 +335,10 @@ func (u *SelfUpdater) verifyNewBinary() error {
 }
 
 func (u *SelfUpdater) replaceBinary(needsSudo bool) error {
-	backupPath := u.currentBinary + ".bak"
-
-	// Create backup of current binary
+	// Stash the backup inside the temp directory (always writable) rather
+	// than alongside the current binary — that path is often root-owned
+	// and we haven't escalated yet.
+	backupPath := filepath.Join(u.tempDir, "poxy.bak")
 	if err := copyFile(u.currentBinary, backupPath); err != nil {
 		return fmt.Errorf("failed to create backup: %w", err)
 	}
@@ -350,22 +351,36 @@ func (u *SelfUpdater) replaceBinary(needsSudo bool) error {
 	}
 
 	if installErr != nil {
-		// Restore from backup
 		ui.WarningMsg("Installation failed, restoring backup...")
-		// Remove potentially corrupted/partial binary first
-		os.Remove(u.currentBinary) // Ignore error - file may not exist
-		if restoreErr := copyFile(backupPath, u.currentBinary); restoreErr != nil {
+		restoreErr := u.restoreBackup(backupPath, needsSudo)
+		if restoreErr != nil {
 			ui.ErrorMsg("Failed to restore backup: %v", restoreErr)
 			ui.MutedMsg("  Backup is available at: %s", backupPath)
 			return fmt.Errorf("installation failed and restore failed: %w (restore error: %v)", installErr, restoreErr)
 		}
-		os.Remove(backupPath)
 		return installErr
 	}
 
-	// Remove backup on success
-	os.Remove(backupPath)
 	return nil
+}
+
+// restoreBackup puts the previous binary back in place. Runs under sudo
+// when the install path requires elevation.
+func (u *SelfUpdater) restoreBackup(backupPath string, needsSudo bool) error {
+	if needsSudo {
+		script := fmt.Sprintf("rm -f %q && cp %q %q && chmod 755 %q",
+			u.currentBinary, backupPath, u.currentBinary, u.currentBinary)
+		cmd := exec.Command("sudo", "sh", "-c", script)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+	_ = os.Remove(u.currentBinary)
+	if err := copyFile(backupPath, u.currentBinary); err != nil {
+		return err
+	}
+	return os.Chmod(u.currentBinary, 0755)
 }
 
 func (u *SelfUpdater) installDirect() error {
@@ -389,35 +404,23 @@ func (u *SelfUpdater) installDirect() error {
 }
 
 func (u *SelfUpdater) installWithSudo() error {
-	// Remove the current binary first to avoid "text file busy" error
-	cmd := exec.Command("sudo", "rm", "-f", u.currentBinary)
+	// Do all three steps (rm old, copy new, chmod) in a single sudo
+	// invocation so the user is only prompted for a password once and so
+	// the three operations can't be interrupted partway through. The rm
+	// is necessary to avoid ETXTBSY when the current process is running
+	// from the destination path — unlinking frees the path for a fresh
+	// create by cp without disturbing the running binary's inode.
+	script := fmt.Sprintf(
+		"rm -f %q && cp %q %q && chmod 755 %q",
+		u.currentBinary, u.newBinary, u.currentBinary, u.currentBinary,
+	)
+	cmd := exec.Command("sudo", "sh", "-c", script)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sudo rm failed: %w", err)
+		return fmt.Errorf("sudo install failed: %w", err)
 	}
-
-	// Use sudo cp to copy the binary
-	cmd = exec.Command("sudo", "cp", u.newBinary, u.currentBinary)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sudo cp failed: %w", err)
-	}
-
-	// Make executable with sudo
-	cmd = exec.Command("sudo", "chmod", "755", u.currentBinary)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sudo chmod failed: %w", err)
-	}
-
 	return nil
 }
 
