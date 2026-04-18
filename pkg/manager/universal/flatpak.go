@@ -148,7 +148,7 @@ func (f *Flatpak) Search(ctx context.Context, query string, opts manager.SearchO
 		return f.searchInstalled(ctx, query, opts)
 	}
 
-	output, err := f.exec.Output(ctx, f.binary, "search", query)
+	output, err := f.exec.OutputQuiet(ctx, f.binary, "search", query)
 	if err != nil {
 		return []manager.Package{}, nil
 	}
@@ -158,7 +158,7 @@ func (f *Flatpak) Search(ctx context.Context, query string, opts manager.SearchO
 
 // searchInstalled searches installed applications.
 func (f *Flatpak) searchInstalled(ctx context.Context, query string, opts manager.SearchOpts) ([]manager.Package, error) {
-	output, err := f.exec.Output(ctx, f.binary, "list", "--columns=name,application,version")
+	output, err := f.exec.OutputQuiet(ctx, f.binary, "list", "--columns=name,application,version")
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (f *Flatpak) parseSearchOutput(output string, limit int) []manager.Package 
 
 // Info returns detailed information about a Flatpak application.
 func (f *Flatpak) Info(ctx context.Context, pkg string) (*manager.PackageInfo, error) {
-	output, err := f.exec.Output(ctx, f.binary, "info", pkg)
+	output, err := f.exec.OutputQuiet(ctx, f.binary, "info", pkg)
 	if err != nil {
 		return nil, fmt.Errorf("package '%s' not found", pkg)
 	}
@@ -297,7 +297,7 @@ func (f *Flatpak) parsePackageInfo(output string) *manager.PackageInfo {
 
 // ListInstalled returns all installed Flatpak applications.
 func (f *Flatpak) ListInstalled(ctx context.Context, opts manager.ListOpts) ([]manager.Package, error) {
-	output, err := f.exec.Output(ctx, f.binary, "list", "--columns=name,application,version")
+	output, err := f.exec.OutputQuiet(ctx, f.binary, "list", "--columns=name,application,version")
 	if err != nil {
 		return nil, err
 	}
