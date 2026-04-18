@@ -45,6 +45,7 @@ func Confirm(prompt string, defaultYes bool) (bool, error) {
 }
 
 // SelectPackage prompts the user to select a package from a list.
+// Returns (nil, nil) if the user cancels with esc/q/ctrl+c.
 func SelectPackage(packages []manager.Package, prompt string) (*manager.Package, error) {
 	if len(packages) == 0 {
 		return nil, fmt.Errorf("no packages to select from")
@@ -54,43 +55,26 @@ func SelectPackage(packages []manager.Package, prompt string) (*manager.Package,
 		return &packages[0], nil
 	}
 
-	templates := &promptui.SelectTemplates{
-		Label:    "{{ . }}",
-		Active:   "▸ {{ .Name | cyan }} {{ .Version | green }} [{{ .Source | magenta }}]",
-		Inactive: "  {{ .Name }} {{ .Version | faint }} [{{ .Source | faint }}]",
-		Selected: "✓ {{ .Name | cyan }} {{ .Version | green }} [{{ .Source | magenta }}]",
-		Details: `
---------- Package ----------
-{{ "Name:" | faint }}	{{ .Name }}
-{{ "Version:" | faint }}	{{ .Version }}
-{{ "Source:" | faint }}	{{ .Source }}
-{{ "Description:" | faint }}	{{ .Description }}`,
+	items := make([]SelectorItem, len(packages))
+	for i, pkg := range packages {
+		items[i] = SelectorItem{
+			Title: fmt.Sprintf("%s %s", pkg.Name, pkg.Version),
+			Desc:  fmt.Sprintf("[%s]", pkg.Source),
+		}
 	}
 
-	searcher := func(input string, index int) bool {
-		pkg := packages[index]
-		name := strings.ToLower(pkg.Name)
-		input = strings.ToLower(input)
-		return strings.Contains(name, input)
-	}
-
-	p := promptui.Select{
-		Label:     prompt,
-		Items:     packages,
-		Templates: templates,
-		Size:      10,
-		Searcher:  searcher,
-	}
-
-	index, _, err := p.Run()
+	idx, err := RunSelector(prompt, items)
 	if err != nil {
 		return nil, err
 	}
-
-	return &packages[index], nil
+	if idx < 0 {
+		return nil, nil
+	}
+	return &packages[idx], nil
 }
 
 // SelectSource prompts the user to select a package source.
+// Returns ("", nil) if the user cancels with esc/q/ctrl+c.
 func SelectSource(sources []string, prompt string) (string, error) {
 	if len(sources) == 0 {
 		return "", fmt.Errorf("no sources available")
@@ -100,18 +84,19 @@ func SelectSource(sources []string, prompt string) (string, error) {
 		return sources[0], nil
 	}
 
-	p := promptui.Select{
-		Label: prompt,
-		Items: sources,
-		Size:  10,
+	items := make([]SelectorItem, len(sources))
+	for i, s := range sources {
+		items[i] = SelectorItem{Title: s}
 	}
 
-	_, result, err := p.Run()
+	idx, err := RunSelector(prompt, items)
 	if err != nil {
 		return "", err
 	}
-
-	return result, nil
+	if idx < 0 {
+		return "", nil
+	}
+	return sources[idx], nil
 }
 
 // Input prompts the user for text input.
