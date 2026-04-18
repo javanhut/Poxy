@@ -40,10 +40,9 @@ func (p *Pacman) Install(ctx context.Context, packages []string, opts manager.In
 		defer p.SetDryRun(false)
 	}
 
-	stderr, err := p.Executor().RunSudoWithStderr(ctx, p.Binary(), args...)
+	out, err := p.RunOpCaptured(ctx, opts.OutputSink, args...)
 	if err != nil {
-		// Try to parse the error for better handling
-		if pacErr := ParsePacmanError(stderr, err); pacErr != nil {
+		if pacErr := ParsePacmanError(out, err); pacErr != nil {
 			return pacErr
 		}
 		return err
@@ -74,7 +73,8 @@ func (p *Pacman) Uninstall(ctx context.Context, packages []string, opts manager.
 		defer p.SetDryRun(false)
 	}
 
-	return p.Executor().RunSudo(ctx, p.Binary(), args...)
+	_, err := p.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -104,7 +104,8 @@ func (p *Pacman) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer p.SetDryRun(false)
 	}
 
-	return p.Executor().RunSudo(ctx, p.Binary(), args...)
+	_, err := p.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

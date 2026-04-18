@@ -39,7 +39,8 @@ func (n *Nix) Install(ctx context.Context, packages []string, opts manager.Insta
 		defer n.SetDryRun(false)
 	}
 
-	return n.Executor().Run(ctx, n.Binary(), args...)
+	_, err := n.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -52,7 +53,8 @@ func (n *Nix) Uninstall(ctx context.Context, packages []string, opts manager.Uni
 		defer n.SetDryRun(false)
 	}
 
-	return n.Executor().Run(ctx, n.Binary(), args...)
+	_, err := n.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database (updates channels).
@@ -73,7 +75,8 @@ func (n *Nix) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer n.SetDryRun(false)
 	}
 
-	return n.Executor().Run(ctx, n.Binary(), args...)
+	_, err := n.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

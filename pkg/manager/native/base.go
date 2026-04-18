@@ -2,6 +2,8 @@
 package native
 
 import (
+	"context"
+	"io"
 	"os/exec"
 
 	"poxy/internal/executor"
@@ -84,4 +86,43 @@ func (b *BaseManager) SetDryRun(dryRun bool) {
 // SetVerbose enables or disables verbose mode.
 func (b *BaseManager) SetVerbose(verbose bool) {
 	b.exec.SetVerbose(verbose)
+}
+
+// RunOpCaptured runs the manager's binary, capturing stdout+stderr.
+// When sink is non-nil the captured output is also written to it.
+// Uses sudo when the manager requires it. Returns the combined output plus
+// any execution error.
+func (b *BaseManager) RunOpCaptured(ctx context.Context, sink io.Writer, args ...string) (string, error) {
+	var (
+		out string
+		err error
+	)
+	if b.needsSudo {
+		out, err = b.exec.RunSudoCaptured(ctx, b.binary, args...)
+	} else {
+		out, err = b.exec.RunCaptured(ctx, b.binary, args...)
+	}
+	if sink != nil && out != "" {
+		_, _ = sink.Write([]byte(out))
+	}
+	return out, err
+}
+
+// RunOpCapturedAs is like RunOpCaptured but lets the caller override the
+// binary name (needed when a manager delegates to a sibling tool — e.g.
+// pacman-based uninstall for an AUR helper).
+func (b *BaseManager) RunOpCapturedAs(ctx context.Context, sink io.Writer, binary string, args ...string) (string, error) {
+	var (
+		out string
+		err error
+	)
+	if b.needsSudo {
+		out, err = b.exec.RunSudoCaptured(ctx, binary, args...)
+	} else {
+		out, err = b.exec.RunCaptured(ctx, binary, args...)
+	}
+	if sink != nil && out != "" {
+		_, _ = sink.Write([]byte(out))
+	}
+	return out, err
 }

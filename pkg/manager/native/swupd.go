@@ -31,7 +31,8 @@ func (s *Swupd) Install(ctx context.Context, packages []string, opts manager.Ins
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().RunSudo(ctx, s.Binary(), args...)
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more bundles.
@@ -44,7 +45,8 @@ func (s *Swupd) Uninstall(ctx context.Context, packages []string, opts manager.U
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().RunSudo(ctx, s.Binary(), args...)
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database (checks for updates).
@@ -59,7 +61,8 @@ func (s *Swupd) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().RunSudo(ctx, s.Binary(), "update")
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, "update")
+	return err
 }
 
 // Search finds bundles matching the query.

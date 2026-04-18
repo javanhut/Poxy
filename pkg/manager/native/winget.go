@@ -35,7 +35,7 @@ func (w *Winget) Install(ctx context.Context, packages []string, opts manager.In
 			defer w.SetDryRun(false)
 		}
 
-		if err := w.Executor().Run(ctx, w.Binary(), args...); err != nil {
+		if _, err := w.RunOpCaptured(ctx, opts.OutputSink, args...); err != nil {
 			return err
 		}
 	}
@@ -57,7 +57,7 @@ func (w *Winget) Uninstall(ctx context.Context, packages []string, opts manager.
 			defer w.SetDryRun(false)
 		}
 
-		if err := w.Executor().Run(ctx, w.Binary(), args...); err != nil {
+		if _, err := w.RunOpCaptured(ctx, opts.OutputSink, args...); err != nil {
 			return err
 		}
 	}
@@ -90,7 +90,8 @@ func (w *Winget) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer w.SetDryRun(false)
 	}
 
-	return w.Executor().Run(ctx, w.Binary(), args...)
+	_, err := w.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

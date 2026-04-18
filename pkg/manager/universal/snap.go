@@ -71,7 +71,11 @@ func (s *Snap) Install(ctx context.Context, packages []string, opts manager.Inst
 			defer s.exec.SetDryRun(false)
 		}
 
-		if err := s.exec.RunSudo(ctx, s.binary, args...); err != nil {
+		out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
+		if opts.OutputSink != nil && out != "" {
+			_, _ = opts.OutputSink.Write([]byte(out))
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -93,7 +97,11 @@ func (s *Snap) Uninstall(ctx context.Context, packages []string, opts manager.Un
 		defer s.exec.SetDryRun(false)
 	}
 
-	return s.exec.RunSudo(ctx, s.binary, args...)
+	out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
+	if opts.OutputSink != nil && out != "" {
+		_, _ = opts.OutputSink.Write([]byte(out))
+	}
+	return err
 }
 
 // Update for Snap is a no-op (Snap handles this automatically).
@@ -114,7 +122,11 @@ func (s *Snap) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer s.exec.SetDryRun(false)
 	}
 
-	return s.exec.RunSudo(ctx, s.binary, args...)
+	out, err := s.exec.RunSudoCaptured(ctx, s.binary, args...)
+	if opts.OutputSink != nil && out != "" {
+		_, _ = opts.OutputSink.Write([]byte(out))
+	}
+	return err
 }
 
 // Search finds Snap packages matching the query.

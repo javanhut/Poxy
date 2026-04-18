@@ -36,7 +36,8 @@ func (e *Eopkg) Install(ctx context.Context, packages []string, opts manager.Ins
 		defer e.SetDryRun(false)
 	}
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -54,7 +55,8 @@ func (e *Eopkg) Uninstall(ctx context.Context, packages []string, opts manager.U
 		defer e.SetDryRun(false)
 	}
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -79,7 +81,8 @@ func (e *Eopkg) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer e.SetDryRun(false)
 	}
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

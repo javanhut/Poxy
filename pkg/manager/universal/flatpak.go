@@ -82,7 +82,11 @@ func (f *Flatpak) Install(ctx context.Context, packages []string, opts manager.I
 			defer f.exec.SetDryRun(false)
 		}
 
-		if err := f.exec.Run(ctx, f.binary, args...); err != nil {
+		out, err := f.exec.RunCaptured(ctx, f.binary, args...)
+		if opts.OutputSink != nil && out != "" {
+			_, _ = opts.OutputSink.Write([]byte(out))
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -105,7 +109,10 @@ func (f *Flatpak) Uninstall(ctx context.Context, packages []string, opts manager
 		defer f.exec.SetDryRun(false)
 	}
 
-	err := f.exec.Run(ctx, f.binary, args...)
+	out, err := f.exec.RunCaptured(ctx, f.binary, args...)
+	if opts.OutputSink != nil && out != "" {
+		_, _ = opts.OutputSink.Write([]byte(out))
+	}
 	if err != nil {
 		return err
 	}
@@ -139,7 +146,11 @@ func (f *Flatpak) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer f.exec.SetDryRun(false)
 	}
 
-	return f.exec.Run(ctx, f.binary, args...)
+	out, err := f.exec.RunCaptured(ctx, f.binary, args...)
+	if opts.OutputSink != nil && out != "" {
+		_, _ = opts.OutputSink.Write([]byte(out))
+	}
+	return err
 }
 
 // Search finds Flatpak applications matching the query.

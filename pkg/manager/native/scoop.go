@@ -31,7 +31,8 @@ func (s *Scoop) Install(ctx context.Context, packages []string, opts manager.Ins
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().Run(ctx, s.Binary(), args...)
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -48,7 +49,8 @@ func (s *Scoop) Uninstall(ctx context.Context, packages []string, opts manager.U
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().Run(ctx, s.Binary(), args...)
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -71,7 +73,8 @@ func (s *Scoop) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer s.SetDryRun(false)
 	}
 
-	return s.Executor().Run(ctx, s.Binary(), args...)
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

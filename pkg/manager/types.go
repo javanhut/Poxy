@@ -1,7 +1,10 @@
 // Package manager provides the core abstraction for package managers across different operating systems.
 package manager
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // ManagerType represents the category of package manager.
 type ManagerType string
@@ -38,24 +41,27 @@ type PackageInfo struct {
 
 // InstallOpts contains options for package installation.
 type InstallOpts struct {
-	AutoConfirm bool // Automatically confirm prompts
-	DryRun      bool // Show what would happen without executing
-	Reinstall   bool // Reinstall if already installed
+	AutoConfirm bool      // Automatically confirm prompts
+	DryRun      bool      // Show what would happen without executing
+	Reinstall   bool      // Reinstall if already installed
+	OutputSink  io.Writer // If non-nil, managers write captured install output here
 }
 
 // UninstallOpts contains options for package removal.
 type UninstallOpts struct {
-	AutoConfirm bool // Automatically confirm prompts
-	DryRun      bool // Show what would happen without executing
-	Purge       bool // Remove configuration files too
-	Recursive   bool // Remove unused dependencies
+	AutoConfirm bool      // Automatically confirm prompts
+	DryRun      bool      // Show what would happen without executing
+	Purge       bool      // Remove configuration files too
+	Recursive   bool      // Remove unused dependencies
+	OutputSink  io.Writer // If non-nil, managers write captured output here
 }
 
 // UpgradeOpts contains options for package upgrades.
 type UpgradeOpts struct {
-	AutoConfirm bool     // Automatically confirm prompts
-	DryRun      bool     // Show what would happen without executing
-	Packages    []string // Specific packages to upgrade (empty = upgrade all)
+	AutoConfirm bool      // Automatically confirm prompts
+	DryRun      bool      // Show what would happen without executing
+	Packages    []string  // Specific packages to upgrade (empty = upgrade all)
+	OutputSink  io.Writer // If non-nil, managers write captured output here
 }
 
 // SearchOpts contains options for package search.

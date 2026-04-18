@@ -40,7 +40,8 @@ func (d *DNF) Install(ctx context.Context, packages []string, opts manager.Insta
 		defer d.SetDryRun(false)
 	}
 
-	return d.Executor().RunSudo(ctx, d.Binary(), args...)
+	_, err := d.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -58,8 +59,7 @@ func (d *DNF) Uninstall(ctx context.Context, packages []string, opts manager.Uni
 		defer d.SetDryRun(false)
 	}
 
-	err := d.Executor().RunSudo(ctx, d.Binary(), args...)
-	if err != nil {
+	if _, err := d.RunOpCaptured(ctx, opts.OutputSink, args...); err != nil {
 		return err
 	}
 
@@ -92,7 +92,8 @@ func (d *DNF) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer d.SetDryRun(false)
 	}
 
-	return d.Executor().RunSudo(ctx, d.Binary(), args...)
+	_, err := d.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

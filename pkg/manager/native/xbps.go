@@ -36,7 +36,8 @@ func (x *XBPS) Install(ctx context.Context, packages []string, opts manager.Inst
 		defer x.SetDryRun(false)
 	}
 
-	return x.Executor().RunSudo(ctx, "xbps-install", args...)
+	_, err := x.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -58,7 +59,8 @@ func (x *XBPS) Uninstall(ctx context.Context, packages []string, opts manager.Un
 		defer x.SetDryRun(false)
 	}
 
-	return x.Executor().RunSudo(ctx, "xbps-remove", args...)
+	_, err := x.RunOpCapturedAs(ctx, opts.OutputSink, "xbps-remove", args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -87,7 +89,8 @@ func (x *XBPS) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer x.SetDryRun(false)
 	}
 
-	return x.Executor().RunSudo(ctx, "xbps-install", args...)
+	_, err := x.RunOpCapturedAs(ctx, opts.OutputSink, "xbps-install", args...)
+	return err
 }
 
 // Search finds packages matching the query.

@@ -1,8 +1,13 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"os"
+	"strings"
 
+	"poxy/internal/executor"
 	"poxy/internal/history"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
@@ -76,31 +81,77 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	// Create history entry
 	entry := history.NewEntry(history.OpUninstall, mgr.Name(), packages)
 
-	// Build options
+	// Capture PM output so we can show a clean summary (and surface it on failure).
+	var buf bytes.Buffer
 	opts := manager.UninstallOpts{
-		AutoConfirm: cfg.General.AutoConfirm,
+		AutoConfirm: true, // poxy already confirmed above
 		DryRun:      cfg.General.DryRun,
 		Purge:       uninstallPurge,
 		Recursive:   uninstallRecursive,
+		OutputSink:  &buf,
 	}
 
-	// Execute removal
-	err = mgr.Uninstall(ctx, packages, opts)
+	// Pre-warm sudo so password prompts don't get swallowed by captured exec.
+	if mgr.NeedsSudo() {
+		if sudoErr := executor.New(false, false).EnsureSudo(ctx); sudoErr != nil {
+			entry.MarkFailed(sudoErr)
+			recordInstallHistory(entry)
+			ui.ErrorMsg("Could not escalate privileges: %v", sudoErr)
+			return sudoErr
+		}
+	}
 
-	// Update history
+	err = runUninstallWithSpinner(ctx, mgr, packages, opts)
+
 	if err != nil {
 		entry.MarkFailed(err)
-		ui.ErrorMsg("Removal failed: %v", err)
+		emitRemovalFailure(buf.String(), err)
 	} else {
 		entry.MarkSuccess()
-		ui.SuccessMsg("Successfully removed %d package(s)", len(packages))
+		emitRemovalSuccess(buf.String(), packages, mgr.DisplayName())
 	}
 
-	// Record in history (ignore errors)
-	if store, storeErr := history.Open(); storeErr == nil {
-		_ = store.Record(entry) //nolint:errcheck
-		_ = store.Close()       //nolint:errcheck
-	}
-
+	recordInstallHistory(entry)
 	return err
+}
+
+// runUninstallWithSpinner wraps mgr.Uninstall with a spinner for a consistent
+// appearance. Verbose and AUR paths skip the spinner.
+func runUninstallWithSpinner(ctx context.Context, mgr manager.Manager, packages []string, opts manager.UninstallOpts) error {
+	useSpinner := !cfg.Output.Verbose && mgr.Type() != manager.TypeAUR
+	msg := fmt.Sprintf("Removing %s via %s", strings.Join(packages, " "), mgr.DisplayName())
+
+	if !useSpinner {
+		ui.InfoMsg("%s…", msg)
+		return mgr.Uninstall(ctx, packages, opts)
+	}
+
+	sp := ui.NewSpinner(msg + "…")
+	sp.Start()
+	err := mgr.Uninstall(ctx, packages, opts)
+	sp.Stop()
+	return err
+}
+
+func emitRemovalSuccess(captured string, packages []string, displayName string) {
+	summary := ui.ParsePackageSummary(captured)
+	label := strings.Join(packages, " ")
+	if summary.VersionTag != "" {
+		label = summary.VersionTag
+	}
+	if summary.Size != "" {
+		ui.SuccessMsg("Removed %s (%s) from %s", label, summary.Size, displayName)
+	} else {
+		ui.SuccessMsg("Removed %s from %s", label, displayName)
+	}
+}
+
+func emitRemovalFailure(captured string, err error) {
+	if !cfg.Output.Verbose && captured != "" {
+		fmt.Fprint(os.Stderr, captured)
+		if !strings.HasSuffix(captured, "\n") {
+			fmt.Fprintln(os.Stderr)
+		}
+	}
+	ui.ErrorMsg("Removal failed: %v", err)
 }

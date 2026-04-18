@@ -55,7 +55,8 @@ func (a *APT) Install(ctx context.Context, packages []string, opts manager.Insta
 		defer a.SetDryRun(false)
 	}
 
-	return a.Executor().RunSudo(ctx, a.Binary(), args...)
+	_, err := a.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -78,8 +79,7 @@ func (a *APT) Uninstall(ctx context.Context, packages []string, opts manager.Uni
 		defer a.SetDryRun(false)
 	}
 
-	err := a.Executor().RunSudo(ctx, a.Binary(), args...)
-	if err != nil {
+	if _, err := a.RunOpCaptured(ctx, opts.OutputSink, args...); err != nil {
 		return err
 	}
 
@@ -114,7 +114,8 @@ func (a *APT) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer a.SetDryRun(false)
 	}
 
-	return a.Executor().RunSudo(ctx, a.Binary(), args...)
+	_, err := a.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

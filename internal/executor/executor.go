@@ -17,11 +17,23 @@ type Executor struct {
 	verbose bool
 }
 
+// defaultVerbose is applied as an OR to every executor created via New.
+// It lets the CLI layer set verbose mode globally after flag parsing
+// without touching every executor.New call site.
+var defaultVerbose bool
+
+// SetDefaultVerbose sets the package-level default verbose flag.
+// Executors created after this call inherit the flag (ORed with their
+// explicit argument).
+func SetDefaultVerbose(v bool) {
+	defaultVerbose = v
+}
+
 // New creates a new Executor with the given options.
 func New(dryRun, verbose bool) *Executor {
 	return &Executor{
 		dryRun:  dryRun,
-		verbose: verbose,
+		verbose: verbose || defaultVerbose,
 	}
 }
 
@@ -248,6 +260,90 @@ func (e *Executor) RunWithOutput(ctx context.Context, name string, args ...strin
 
 	err := cmd.Run()
 	return buf.String(), err
+}
+
+// RunCaptured runs a command, capturing stdout+stderr to a single buffer
+// instead of inheriting the user's TTY. Returns the combined output.
+// When verbose, mirrors output to the terminal as well.
+func (e *Executor) RunCaptured(ctx context.Context, name string, args ...string) (string, error) {
+	if e.dryRun {
+		e.printDryRun(name, args)
+		return "", nil
+	}
+
+	cmd := exec.CommandContext(ctx, name, args...)
+	var combined bytes.Buffer
+	if e.verbose {
+		fmt.Printf("Executing: %s %s\n", name, strings.Join(args, " "))
+		cmd.Stdout = io.MultiWriter(os.Stdout, &combined)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &combined)
+	} else {
+		cmd.Stdout = &combined
+		cmd.Stderr = &combined
+	}
+
+	err := cmd.Run()
+	return combined.String(), err
+}
+
+// RunSudoCaptured runs a command with sudo, capturing stdout+stderr to a
+// single buffer instead of inheriting the user's TTY. Returns the combined
+// output. When verbose, mirrors output to the terminal as well. Callers
+// should invoke EnsureSudo beforehand so password prompts don't get
+// swallowed by the captured streams.
+func (e *Executor) RunSudoCaptured(ctx context.Context, name string, args ...string) (string, error) {
+	if e.dryRun {
+		e.printDryRunSudo(name, args)
+		return "", nil
+	}
+
+	var cmd *exec.Cmd
+	if isRoot() {
+		cmd = exec.CommandContext(ctx, name, args...)
+	} else if hasSudo() {
+		sudoArgs := append([]string{"-n", name}, args...)
+		cmd = exec.CommandContext(ctx, "sudo", sudoArgs...)
+	} else {
+		return "", fmt.Errorf("this operation requires root privileges, but sudo is not available")
+	}
+
+	var combined bytes.Buffer
+	if e.verbose {
+		if isRoot() {
+			fmt.Printf("Executing (as root): %s %s\n", name, strings.Join(args, " "))
+		} else {
+			fmt.Printf("Executing (with sudo): %s %s\n", name, strings.Join(args, " "))
+		}
+		cmd.Stdout = io.MultiWriter(os.Stdout, &combined)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &combined)
+	} else {
+		cmd.Stdout = &combined
+		cmd.Stderr = &combined
+	}
+
+	err := cmd.Run()
+	return combined.String(), err
+}
+
+// EnsureSudo pre-warms the sudo credential cache so subsequent captured
+// sudo commands don't prompt for a password (which would be swallowed by
+// the captured streams). No-op if running as root or if sudo credentials
+// are already cached.
+func (e *Executor) EnsureSudo(ctx context.Context) error {
+	if isRoot() || !hasSudo() {
+		return nil
+	}
+	// Test for cached credentials without prompting.
+	test := exec.CommandContext(ctx, "sudo", "-n", "-v")
+	if test.Run() == nil {
+		return nil
+	}
+	// Not cached: prompt interactively.
+	prompt := exec.CommandContext(ctx, "sudo", "-v")
+	prompt.Stdin = os.Stdin
+	prompt.Stdout = os.Stdout
+	prompt.Stderr = os.Stderr
+	return prompt.Run()
 }
 
 func (e *Executor) printDryRun(name string, args []string) {

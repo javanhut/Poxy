@@ -32,7 +32,8 @@ func (e *Emerge) Install(ctx context.Context, packages []string, opts manager.In
 
 	args = append(args, packages...)
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -45,7 +46,8 @@ func (e *Emerge) Uninstall(ctx context.Context, packages []string, opts manager.
 
 	args = append(args, packages...)
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database (syncs portage tree).
@@ -67,7 +69,8 @@ func (e *Emerge) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		args = append(args, "@world")
 	}
 
-	return e.Executor().RunSudo(ctx, e.Binary(), args...)
+	_, err := e.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

@@ -3,6 +3,7 @@ package cli
 
 import (
 	"poxy/internal/config"
+	"poxy/internal/executor"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
 	"poxy/pkg/manager/native"
@@ -116,6 +117,7 @@ func initializeApp() error {
 	if verbose {
 		cfg.Output.Verbose = true
 	}
+	executor.SetDefaultVerbose(cfg.Output.Verbose)
 	if noColor {
 		cfg.Output.Color = false
 	}

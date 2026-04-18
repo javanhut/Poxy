@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
+	"poxy/internal/executor"
 	"poxy/internal/history"
 	"poxy/internal/ui"
 	"poxy/pkg/manager"
@@ -374,49 +377,105 @@ func doInstallQuiet(ctx context.Context, mgr manager.Manager, packages []string)
 	// Create history entry
 	entry := history.NewEntry(history.OpInstall, mgr.Name(), packages)
 
-	// Build options - always set AutoConfirm since poxy already confirmed with user
+	// Capture PM output so we can show a clean summary (and surface it on failure).
+	var buf bytes.Buffer
 	opts := manager.InstallOpts{
 		AutoConfirm: true,
 		DryRun:      cfg.General.DryRun,
+		OutputSink:  &buf,
 	}
 
-	// Execute installation
-	err := mgr.Install(ctx, packages, opts)
+	// Pre-warm sudo so password prompts don't get swallowed by the captured exec.
+	if mgr.NeedsSudo() {
+		if sudoErr := executor.New(false, false).EnsureSudo(ctx); sudoErr != nil {
+			entry.MarkFailed(sudoErr)
+			recordInstallHistory(entry)
+			ui.ErrorMsg("Could not escalate privileges: %v", sudoErr)
+			return sudoErr
+		}
+	}
+
+	err := runInstallWithSpinner(ctx, mgr, packages, opts)
 
 	// Check for pacman dependency conflicts and offer to help
 	if err != nil {
 		if handled, handledErr := handlePacmanConflict(ctx, mgr, packages, opts, err); handled {
 			if handledErr == nil {
 				entry.MarkSuccess()
-				ui.SuccessMsg("Successfully installed %v from %s", packages, mgr.DisplayName())
+				emitInstallSuccess(buf.String(), packages, mgr.DisplayName())
 			} else {
 				entry.MarkFailed(handledErr)
+				emitInstallFailure(buf.String(), handledErr)
 			}
-			// Record in history (ignore errors)
-			if store, storeErr := history.Open(); storeErr == nil {
-				_ = store.Record(entry) //nolint:errcheck
-				_ = store.Close()       //nolint:errcheck
-			}
+			recordInstallHistory(entry)
 			return handledErr
 		}
 	}
 
-	// Update history
 	if err != nil {
 		entry.MarkFailed(err)
-		ui.ErrorMsg("Installation failed: %v", err)
+		emitInstallFailure(buf.String(), err)
 	} else {
 		entry.MarkSuccess()
-		ui.SuccessMsg("Successfully installed %v from %s", packages, mgr.DisplayName())
+		emitInstallSuccess(buf.String(), packages, mgr.DisplayName())
 	}
 
-	// Record in history (ignore errors)
-	if store, storeErr := history.Open(); storeErr == nil {
+	recordInstallHistory(entry)
+	return err
+}
+
+// runInstallWithSpinner wraps mgr.Install with a spinner when the UI layer is
+// in quiet mode. Verbose mode and AUR managers (which have their own
+// interactive prompts) skip the spinner and pass through to the underlying PM.
+func runInstallWithSpinner(ctx context.Context, mgr manager.Manager, packages []string, opts manager.InstallOpts) error {
+	useSpinner := !cfg.Output.Verbose && mgr.Type() != manager.TypeAUR
+	msg := fmt.Sprintf("Installing %s via %s", strings.Join(packages, " "), mgr.DisplayName())
+
+	if !useSpinner {
+		ui.InfoMsg("%s…", msg)
+		return mgr.Install(ctx, packages, opts)
+	}
+
+	sp := ui.NewSpinner(msg + "…")
+	sp.Start()
+	err := mgr.Install(ctx, packages, opts)
+	sp.Stop()
+	return err
+}
+
+// emitInstallSuccess prints the consistent success line, enriched with size
+// and versioned package tag when the PM's output surfaces them.
+func emitInstallSuccess(captured string, packages []string, displayName string) {
+	summary := ui.ParsePackageSummary(captured)
+	label := strings.Join(packages, " ")
+	if summary.VersionTag != "" {
+		label = summary.VersionTag
+	}
+	if summary.Size != "" {
+		ui.SuccessMsg("Installed %s (%s) from %s", label, summary.Size, displayName)
+	} else {
+		ui.SuccessMsg("Installed %s from %s", label, displayName)
+	}
+}
+
+// emitInstallFailure dumps the captured PM output (so the user can debug) and
+// then prints the consistent error line. Verbose mode already streamed the
+// output live, so we skip the dump to avoid duplicating it.
+func emitInstallFailure(captured string, err error) {
+	if !cfg.Output.Verbose && captured != "" {
+		fmt.Fprint(os.Stderr, captured)
+		if !strings.HasSuffix(captured, "\n") {
+			fmt.Fprintln(os.Stderr)
+		}
+	}
+	ui.ErrorMsg("Installation failed: %v", err)
+}
+
+func recordInstallHistory(entry *history.Entry) {
+	if store, err := history.Open(); err == nil {
 		_ = store.Record(entry) //nolint:errcheck
 		_ = store.Close()       //nolint:errcheck
 	}
-
-	return err
 }
 
 // handlePacmanConflict checks if the error is a pacman dependency conflict and offers

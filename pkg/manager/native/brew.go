@@ -36,7 +36,8 @@ func (b *Brew) Install(ctx context.Context, packages []string, opts manager.Inst
 		defer b.SetDryRun(false)
 	}
 
-	return b.Executor().Run(ctx, b.Binary(), args...)
+	_, err := b.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -55,7 +56,8 @@ func (b *Brew) Uninstall(ctx context.Context, packages []string, opts manager.Un
 		defer b.SetDryRun(false)
 	}
 
-	return b.Executor().Run(ctx, b.Binary(), args...)
+	_, err := b.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -76,7 +78,8 @@ func (b *Brew) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer b.SetDryRun(false)
 	}
 
-	return b.Executor().Run(ctx, b.Binary(), args...)
+	_, err := b.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

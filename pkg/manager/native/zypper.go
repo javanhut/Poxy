@@ -36,7 +36,8 @@ func (z *Zypper) Install(ctx context.Context, packages []string, opts manager.In
 		defer z.SetDryRun(false)
 	}
 
-	return z.Executor().RunSudo(ctx, z.Binary(), args...)
+	_, err := z.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -54,7 +55,8 @@ func (z *Zypper) Uninstall(ctx context.Context, packages []string, opts manager.
 		defer z.SetDryRun(false)
 	}
 
-	return z.Executor().RunSudo(ctx, z.Binary(), args...)
+	_, err := z.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -79,7 +81,8 @@ func (z *Zypper) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error {
 		defer z.SetDryRun(false)
 	}
 
-	return z.Executor().RunSudo(ctx, z.Binary(), args...)
+	_, err := z.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

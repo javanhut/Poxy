@@ -39,7 +39,8 @@ func (c *Chocolatey) Install(ctx context.Context, packages []string, opts manage
 		defer c.SetDryRun(false)
 	}
 
-	return c.Executor().Run(ctx, c.Binary(), args...)
+	_, err := c.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Uninstall removes one or more packages.
@@ -60,7 +61,8 @@ func (c *Chocolatey) Uninstall(ctx context.Context, packages []string, opts mana
 		defer c.SetDryRun(false)
 	}
 
-	return c.Executor().Run(ctx, c.Binary(), args...)
+	_, err := c.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Update refreshes the package database.
@@ -88,7 +90,8 @@ func (c *Chocolatey) Upgrade(ctx context.Context, opts manager.UpgradeOpts) erro
 		defer c.SetDryRun(false)
 	}
 
-	return c.Executor().Run(ctx, c.Binary(), args...)
+	_, err := c.RunOpCaptured(ctx, opts.OutputSink, args...)
+	return err
 }
 
 // Search finds packages matching the query.

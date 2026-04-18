@@ -29,7 +29,7 @@ func (s *Slackpkg) Install(ctx context.Context, packages []string, opts manager.
 	}
 
 	for _, pkg := range packages {
-		if err := s.Executor().RunSudo(ctx, s.Binary(), "install", pkg); err != nil {
+		if _, err := s.RunOpCaptured(ctx, opts.OutputSink, "install", pkg); err != nil {
 			return err
 		}
 	}
@@ -45,7 +45,7 @@ func (s *Slackpkg) Uninstall(ctx context.Context, packages []string, opts manage
 	}
 
 	for _, pkg := range packages {
-		if err := s.Executor().RunSudo(ctx, s.Binary(), "remove", pkg); err != nil {
+		if _, err := s.RunOpCaptured(ctx, opts.OutputSink, "remove", pkg); err != nil {
 			return err
 		}
 	}
@@ -67,14 +67,15 @@ func (s *Slackpkg) Upgrade(ctx context.Context, opts manager.UpgradeOpts) error 
 
 	if len(opts.Packages) > 0 {
 		for _, pkg := range opts.Packages {
-			if err := s.Executor().RunSudo(ctx, s.Binary(), "upgrade", pkg); err != nil {
+			if _, err := s.RunOpCaptured(ctx, opts.OutputSink, "upgrade", pkg); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 
-	return s.Executor().RunSudo(ctx, s.Binary(), "upgrade-all")
+	_, err := s.RunOpCaptured(ctx, opts.OutputSink, "upgrade-all")
+	return err
 }
 
 // Search finds packages matching the query.
