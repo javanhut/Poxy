@@ -4,8 +4,9 @@
 
 Poxy unifies package management across Linux distributions, macOS, and Windows. Use familiar commands regardless of your system's native package manager.
 
-[![CI](https://github.com/yourusername/poxy/workflows/CI/badge.svg)](https://github.com/yourusername/poxy/actions)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/poxy)](https://goreportcard.com/report/github.com/yourusername/poxy)
+[![CI](https://github.com/javanhut/Poxy/actions/workflows/ci.yml/badge.svg)](https://github.com/javanhut/Poxy/actions/workflows/ci.yml)
+[![CI](https://github.com/javanhut/Poxy/workflows/CI/badge.svg)](https://github.com/javanhut/Poxy/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/javanhut/Poxy)](https://goreportcard.com/report/github.com/javanhut/Poxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
