@@ -20,12 +20,13 @@ const (
 
 // Package represents a software package from any source.
 type Package struct {
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Description string `json:"description"`
-	Source      string `json:"source"`    // Manager name: "apt", "flatpak", etc.
-	Installed   bool   `json:"installed"` // Whether the package is currently installed
-	Size        string `json:"size"`      // Optional: download/install size
+	Name             string `json:"name"`
+	Version          string `json:"version"`
+	Description      string `json:"description"`
+	Source           string `json:"source"`                      // Manager name: "apt", "flatpak", etc.
+	Installed        bool   `json:"installed"`                   // Whether the package is currently installed
+	Size             string `json:"size"`                        // Optional: download/install size
+	InstalledVersion string `json:"installed_version,omitempty"` // For upgradable entries: the currently installed version (Version holds the new one)
 }
 
 // PackageInfo contains detailed information about a package.

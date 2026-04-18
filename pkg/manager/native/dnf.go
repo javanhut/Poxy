@@ -322,6 +322,44 @@ func (d *DNF) ListInstalled(ctx context.Context, opts manager.ListOpts) ([]manag
 	return packages, nil
 }
 
+// ListUpgradable returns installed packages with newer versions available.
+// Uses `dnf check-update`, which exits 100 when updates exist, 0 when none,
+// and other codes on error. Both 100 and 0 are treated as success.
+func (d *DNF) ListUpgradable(ctx context.Context) ([]manager.Package, error) {
+	output, _ := d.Executor().OutputQuiet(ctx, d.Binary(), "check-update", "-q")
+	// Ignore exit code — 100 (updates) and 0 (no updates) both come with
+	// useful stdout. On other errors the scanner will just find nothing.
+
+	var pkgs []manager.Package
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		// Skip obsoletes section header and everything below
+		if strings.HasPrefix(line, "Obsoleting Packages") {
+			break
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		// Format: name.arch  new-version  repo
+		nameArch := fields[0]
+		if idx := strings.LastIndex(nameArch, "."); idx > 0 {
+			nameArch = nameArch[:idx]
+		}
+		pkgs = append(pkgs, manager.Package{
+			Name:      nameArch,
+			Version:   fields[1],
+			Source:    "dnf",
+			Installed: true,
+		})
+	}
+	return pkgs, nil
+}
+
 // IsInstalled checks if a package is installed.
 func (d *DNF) IsInstalled(ctx context.Context, pkg string) (bool, error) {
 	err := d.Executor().Run(ctx, "rpm", "-q", pkg)

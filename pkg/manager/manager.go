@@ -61,6 +61,18 @@ type Manager interface {
 	Autoremove(ctx context.Context) error
 }
 
+// Upgradable is an optional capability: managers that can enumerate the set
+// of installed packages with newer versions available should implement it.
+// Use a type assertion at the call site — it is not part of the base
+// Manager interface because many distros' CLIs don't expose a clean list-
+// upgradable command.
+type Upgradable interface {
+	// ListUpgradable returns packages that have a newer version available.
+	// Each returned Package should have Version set to the available new
+	// version and InstalledVersion set to the currently installed version.
+	ListUpgradable(ctx context.Context) ([]Package, error)
+}
+
 // ManagerInfo provides static information about a manager without requiring instantiation.
 type ManagerInfo struct {
 	Name        string

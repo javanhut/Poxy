@@ -337,6 +337,42 @@ func (p *Pacman) ListInstalled(ctx context.Context, opts manager.ListOpts) ([]ma
 	return packages, nil
 }
 
+// ListUpgradable returns installed packages that have a newer version in
+// the synced repos. It uses `pacman -Qu`, which exits non-zero when no
+// updates are available — we treat that as an empty list, not an error.
+func (p *Pacman) ListUpgradable(ctx context.Context) ([]manager.Package, error) {
+	output, err := p.Executor().OutputQuiet(ctx, p.Binary(), "-Qu")
+	if err != nil && output == "" {
+		// Exit 1 with no output = no updates
+		return []manager.Package{}, nil
+	}
+
+	var pkgs []manager.Package
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		// Format: "name oldVersion -> newVersion" (may have "[ignored]" suffix)
+		if strings.Contains(line, "[ignored]") {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) < 4 || parts[2] != "->" {
+			continue
+		}
+		pkgs = append(pkgs, manager.Package{
+			Name:             parts[0],
+			InstalledVersion: parts[1],
+			Version:          parts[3],
+			Source:           "pacman",
+			Installed:        true,
+		})
+	}
+	return pkgs, nil
+}
+
 // IsInstalled checks if a package is installed.
 func (p *Pacman) IsInstalled(ctx context.Context, pkg string) (bool, error) {
 	err := p.Executor().Run(ctx, p.Binary(), "-Qi", pkg)

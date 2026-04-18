@@ -334,6 +334,49 @@ func (a *APT) ListInstalled(ctx context.Context, opts manager.ListOpts) ([]manag
 	return packages, nil
 }
 
+// ListUpgradable returns installed packages with newer versions available.
+// Uses `apt list --upgradable`.
+func (a *APT) ListUpgradable(ctx context.Context) ([]manager.Package, error) {
+	output, err := a.Executor().OutputQuiet(ctx, "apt", "list", "--upgradable")
+	if err != nil {
+		return []manager.Package{}, nil
+	}
+
+	var pkgs []manager.Package
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		// Skip header and blank lines
+		if line == "" || strings.HasPrefix(line, "Listing") || strings.HasPrefix(line, "WARNING") {
+			continue
+		}
+		// Format: name/repo newVersion arch [upgradable from: oldVersion]
+		slash := strings.Index(line, "/")
+		bracket := strings.Index(line, "[upgradable from: ")
+		if slash <= 0 || bracket < 0 {
+			continue
+		}
+		name := line[:slash]
+		// fields after the slash: first token = repo, second = newVersion
+		rest := strings.Fields(line[slash+1:])
+		if len(rest) < 2 {
+			continue
+		}
+		newVersion := rest[1]
+		// oldVersion sits between "[upgradable from: " and trailing "]"
+		oldVersion := strings.TrimSuffix(line[bracket+len("[upgradable from: "):], "]")
+		oldVersion = strings.TrimSpace(oldVersion)
+		pkgs = append(pkgs, manager.Package{
+			Name:             name,
+			InstalledVersion: oldVersion,
+			Version:          newVersion,
+			Source:           "apt",
+			Installed:        true,
+		})
+	}
+	return pkgs, nil
+}
+
 // IsInstalled checks if a package is installed.
 func (a *APT) IsInstalled(ctx context.Context, pkg string) (bool, error) {
 	output, err := a.Executor().Output(ctx, "dpkg-query", "-W", "-f=${Status}", pkg)

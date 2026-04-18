@@ -29,6 +29,11 @@ type (
 		err     error
 	}
 
+	upgradesLoadedMsg struct {
+		packages []manager.Package
+		err      error
+	}
+
 	historyLoadedMsg struct {
 		entries []history.Entry
 		err     error
@@ -139,6 +144,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case key.Matches(msg, a.keys.Tab3):
 			a.SetTab(2)
+			cmds = append(cmds, a.enterUpdatesTab())
 		case key.Matches(msg, a.keys.Tab4):
 			a.SetTab(3)
 		case key.Matches(msg, a.keys.Tab5):
@@ -146,8 +152,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, a.keys.Left):
 			a.PrevTab()
+			if a.activeView == ViewUpdates {
+				cmds = append(cmds, a.enterUpdatesTab())
+			}
 		case key.Matches(msg, a.keys.Right):
 			a.NextTab()
+			if a.activeView == ViewUpdates {
+				cmds = append(cmds, a.enterUpdatesTab())
+			}
 
 		case key.Matches(msg, a.keys.Back):
 			a.GoBack()
@@ -223,6 +235,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case historyLoadedMsg:
 		if msg.err == nil {
 			a.historyEntries = msg.entries
+		}
+
+	case upgradesLoadedMsg:
+		a.SetLoading(false, "")
+		a.upgradesChecked = true
+		if msg.err != nil {
+			a.SetError(msg.err.Error())
+		} else {
+			a.upgradablePkgs = msg.packages
+			a.SetCursor(0)
+			a.SetScroll(0)
 		}
 
 	case operationCompleteMsg:
@@ -486,14 +509,70 @@ func (a *App) renderUpdatesView() string {
 	var b strings.Builder
 
 	b.WriteString(a.styles.Title.Render("Available Updates"))
-	b.WriteString("\n\n")
-	b.WriteString(a.styles.Description.Render("Press 'u' to check for updates"))
+	b.WriteString("\n")
+
+	switch {
+	case a.loading:
+		b.WriteString(a.styles.Description.Render("Checking for updates…"))
+		return b.String()
+	case !a.upgradesChecked:
+		b.WriteString(a.styles.Description.Render("Press 3 to check for updates"))
+		return b.String()
+	case len(a.upgradablePkgs) == 0:
+		b.WriteString(a.styles.Success.Render("All packages are up to date"))
+		b.WriteString("\n")
+		b.WriteString(a.styles.Description.Render("Press 3 to recheck"))
+		return b.String()
+	}
+
+	b.WriteString(a.styles.Description.Render(fmt.Sprintf("%d package(s) with updates available", len(a.upgradablePkgs))))
 	b.WriteString("\n\n")
 
-	// TODO: Implement update checking
-	b.WriteString(a.styles.Info.Render("Update checking not yet implemented"))
+	visibleHeight := a.VisibleHeight() - 4
+	scroll := a.Scroll()
+	cursor := a.Cursor()
+
+	start := scroll
+	end := scroll + visibleHeight
+	if end > len(a.upgradablePkgs) {
+		end = len(a.upgradablePkgs)
+	}
+
+	for i := start; i < end; i++ {
+		pkg := a.upgradablePkgs[i]
+		b.WriteString(a.renderUpgradeLine(pkg, i == cursor))
+		b.WriteString("\n")
+	}
+
+	if len(a.upgradablePkgs) > visibleHeight {
+		scrollPct := float64(scroll) / float64(len(a.upgradablePkgs)-visibleHeight) * 100
+		b.WriteString(a.styles.Description.Render(fmt.Sprintf("\n  %.0f%% (%d/%d)", scrollPct, cursor+1, len(a.upgradablePkgs))))
+	}
 
 	return b.String()
+}
+
+// renderUpgradeLine renders a single upgradable package entry, showing the
+// current version, an arrow, and the new version.
+func (a *App) renderUpgradeLine(pkg manager.Package, selected bool) string {
+	cursor := "  "
+	if selected {
+		cursor = a.styles.ListItemSelected.Render("> ")
+	}
+
+	nameStyle := lipgloss.NewStyle().Foreground(ColorText)
+	if selected {
+		nameStyle = a.styles.PackageName
+	}
+	name := nameStyle.Render(pkg.Name)
+
+	oldV := lipgloss.NewStyle().Foreground(ColorMuted).Render(pkg.InstalledVersion)
+	arrow := lipgloss.NewStyle().Foreground(ColorMuted).Render(" → ")
+	newV := a.styles.PackageVersion.Render(pkg.Version)
+
+	source := SourceBadge(pkg.Source)
+
+	return fmt.Sprintf("%s%-25s %s%s%s %s", cursor, name, oldV, arrow, newV, source)
 }
 
 // renderHistoryView renders the history view
@@ -694,6 +773,8 @@ func (a *App) renderFooter() string {
 	switch a.activeView {
 	case ViewPackages, ViewSearch:
 		hints = []string{"i:install", "r:remove", "/:search", "Enter:details"}
+	case ViewUpdates:
+		hints = []string{"3:refresh", "u:update db"}
 	case ViewDetails:
 		if a.selectedPkg != nil && a.selectedPkg.Installed {
 			hints = []string{"r:remove", "b:back"}
@@ -783,6 +864,48 @@ func (a *App) loadHistory() tea.Cmd {
 
 		entries, err := a.historyStore.List(50)
 		return historyLoadedMsg{entries: entries, err: err}
+	}
+}
+
+// enterUpdatesTab is called whenever the Updates tab becomes active. It
+// clears any prior selection state and kicks off a fresh ListUpgradable
+// pass. Pressing the Updates tab key again re-fires this for a refresh.
+func (a *App) enterUpdatesTab() tea.Cmd {
+	a.SetCursor(0)
+	a.SetScroll(0)
+	a.SetLoading(true, "Checking for updates…")
+	a.ClearMessages()
+	return a.loadUpgrades()
+}
+
+// loadUpgrades asks every Upgradable manager in the registry for its list
+// of packages with newer versions available, and collects them. Managers
+// that don't implement the Upgradable interface are skipped silently.
+func (a *App) loadUpgrades() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		var all []manager.Package
+		var lastErr error
+
+		for _, mgr := range a.registry.Available() {
+			u, ok := mgr.(manager.Upgradable)
+			if !ok {
+				continue
+			}
+			pkgs, err := u.ListUpgradable(ctx)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			all = append(all, pkgs...)
+		}
+
+		// Only surface an error if no manager returned anything. Otherwise
+		// partial results are more useful than a full failure.
+		if len(all) == 0 && lastErr != nil {
+			return upgradesLoadedMsg{err: lastErr}
+		}
+		return upgradesLoadedMsg{packages: all}
 	}
 }
 

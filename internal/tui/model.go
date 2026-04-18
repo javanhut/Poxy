@@ -54,14 +54,16 @@ type Model struct {
 	prevView   View
 
 	// Data
-	registry       *manager.Registry
-	config         *config.Config
-	historyStore   *history.Store
-	searchIndex    *database.Index
-	installedPkgs  []manager.Package
-	searchResults  []manager.Package
-	historyEntries []history.Entry
-	selectedPkg    *manager.Package
+	registry        *manager.Registry
+	config          *config.Config
+	historyStore    *history.Store
+	searchIndex     *database.Index
+	installedPkgs   []manager.Package
+	searchResults   []manager.Package
+	upgradablePkgs  []manager.Package
+	upgradesChecked bool // true once the first ListUpgradable pass has returned
+	historyEntries  []history.Entry
+	selectedPkg     *manager.Package
 
 	// UI state
 	loading      bool
@@ -156,8 +158,7 @@ func (m *Model) ListItems() []manager.Package {
 	case ViewSearch:
 		return m.searchResults
 	case ViewUpdates:
-		// TODO: Filter for upgradable packages
-		return nil
+		return m.upgradablePkgs
 	default:
 		return nil
 	}
